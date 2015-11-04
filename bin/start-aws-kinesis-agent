@@ -1,0 +1,132 @@
+#! /usr/bin/env bash
+
+MIN_JAVA_VERSION=1.7
+JAVA_START_HEAP=${JAVA_START_HEAP:-32m}
+JAVA_MAX_HEAP=${JAVA_MAX_HEAP:-512m}
+
+function _debug_msg() {
+  if [[ -n "${_SCRIPT_DEBUG}" ]]; then
+    echo -e "\e[32mDEBUG:   $1\e[39m" >&2
+    shift
+    for text in "$@"; do
+      echo -e "\e[32m         ${text}\e[39m" >&2
+    done
+  fi
+}
+
+function _error_msg() {
+  RED_START=
+  echo -e "\e[31mERROR:   $1\e[39m" >&2
+  shift
+  for text in "$@"; do
+    echo -e "\e[31m         ${text}\e[39m" >&2
+  done
+}
+
+function check_java_version() {
+   local javacmd=$1
+   local verbose=$2
+   local javaversion=$($javacmd -version 2>&1 | awk -F '"' '/version/ {print $2}')
+   if [[ "$javaversion" < "$MIN_JAVA_VERSION" ]]; then
+     if [[ -n "$verbose" ]]; then
+       _error_msg "JVM version >= $MIN_JAVA_VERSION is required. Found following JVM:" \
+            "\$ $javacmd -version" \
+            "$($javacmd -version 2>&1 | sed '2,$s/^/                  /g')"
+     fi
+     return 1
+   else
+     return 0
+   fi
+}
+
+function get_java_brute_force() {
+  _debug_msg="Looking for java by brute force..."
+  candidates=$(find \
+        /usr/lib /usr/share/lib /opt/ /usr/ /lib \
+        -mindepth 1 -maxdepth 1 \
+        -type d \( -name java\* -o -name jre\* -o -name jdk\* \) \
+        -printf "%p/bin/java\n%p/jre/bin/java\n%p/jdk/bin/java\n" 2>/dev/null)
+  for candidate in /usr/bin/java $(echo $candidates | sort -r); do
+    _debug_msg "Examining java candidate: $candidate"
+    if [[ -x "$candidate" ]] && check_java_version "$candidate"; then
+      JAVACMD="$candidate"
+      _debug_msg "Found JVACMD=$JAVACMD by brute-force"
+      return 0
+    fi
+  done
+  return 1
+}
+
+function get_java() {
+  if [[ -n "${JAVACMD}" && -x "${JAVACMD}" ]]; then
+    _debug_msg "Using environment JAVACMD directly."
+  elif [[ -n "${JAVA_HOME}" ]]; then
+    _debug_msg "Used environment JAVA_HOME to set JAVACMD."
+    JAVACMD="${JAVA_HOME}/bin/java"
+  elif [[ -n "${JAVA_BINDIR}" && -x "${JAVA_BINDIR}/java" ]]; then
+    JAVACMD="${JAVA_BINDIR}/java"
+    _debug_msg "Used JAVA_BINDIR to set JAVACMD"
+  elif [[ -z "${JAVA_HOME}" && -f /usr/share/java-utils/java-functions ]]; then
+    # JPackage standard method to set JAVA_HOME
+    . /usr/share/java-utils/java-functions; set_jvm
+    _debug_msg "Used JPackage to find JAVA_HOME."
+    if [[ -x "${JAVA_HOME}/bin/java" ]] \
+        && check_java_version "${JAVA_HOME}/bin/java"; then
+      JAVACMD="${JAVA_HOME}/bin/java"
+      _debug_msg "Used JAVA_HOME to set JAVACMD."
+    else
+      # don't pollute environment with a JAVA_HOME
+      unset JAVA_HOME
+    fi
+  fi
+
+  # if no luck still, see if java is on the path
+  if [[ -z "${JAVACMD}" || ! -x "${JAVACMD}" ]] \
+      || ! check_java_version "${JAVACMD}"; then
+    JAVACMD=$(which java)
+    if [[ -n "${JAVACMD}" && -x "${JAVACMD}" ]] \
+      && check_java_version "${JAVACMD}"; then
+        _debug_msg "Used PATH to find JAVACMD."
+    else
+      # finally, try brute force search
+      get_java_brute_force
+    fi
+  fi
+
+  # if we were successful, we return 0 else we complain and return 1
+  if [[ -n "${JAVACMD}" && -x "${JAVACMD}" ]]; then
+    _debug_msg "Using JAVACMD='$JAVACMD'"
+    check_java_version $JAVACMD verbose
+    return $?
+  else
+    _error_msg "Couldn't locate a java virtual machine." \
+           "Please either set JAVACMD, JAVA_BINDIR or JAVA_HOME " \
+           "or make sure java is in your PATH."
+    return 1
+  fi
+}
+
+get_java
+if [[ $? != 0 ]]; then
+  exit 1
+fi
+
+set -e
+DAEMON_NAME=aws-kinesis-agent
+JAVA_DIR="/usr/share/java"
+BIN_DIR=$(cd $(dirname "$0") && pwd)
+LIB_DIR=$(cd "$BIN_DIR"/../share/$DAEMON_NAME/lib && pwd)
+_debug_msg "BIN_DIR=${BIN_DIR}"
+_debug_msg "LIB_DIR=${LIB_DIR}"
+_debug_msg "PWD=${PWD}"
+CLASSPATH="$JAVA_DIR"/*:"$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
+_debug_msg CLASSPATH=$CLASSPATH
+set +e
+
+JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
+
+MAIN_CLASS="com.amazon.kinesis.streaming.agent.Agent"
+
+exec $JAVACMD $JVM_ARGS \
+  -cp "$CLASSPATH" \
+  $MAIN_CLASS "$@"

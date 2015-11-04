@@ -1,0 +1,192 @@
+#! /usr/bin/env bash
+
+# Make sure only root can run our script
+if [ "$(id -u)" != "0" ]; then
+ echo "This script must be run as root" >&2
+ exit 1
+fi
+
+daemon_name=aws-kinesis-agent
+agent_user_name=aws-kinesis-agent-user
+bin_dir=/usr/bin
+cron_dir=/etc/cron.d
+sysconfig_dir=/etc/sysconfig
+config_dir=/etc/aws-kinesis
+jar_dir=/usr/share/${daemon_name}/lib
+init_dir=/etc/rc.d/init.d
+dependencies_dir=./dependencies
+log_dir=/var/log/${daemon_name}
+state_dir=/var/run/${daemon_name}
+agent_service=${init_dir}/${daemon_name}
+
+usage() {
+  echo "Usage:"
+  echo "To install Kinesis Agent, type:"
+  echo "  sudo <script-path>/setup --install"
+  echo "To uninstall Kinesis Agent, type:"
+  echo "  sudo <script-path>/setup --uninstall"
+}
+
+fail() {
+  echo $1 >&2
+  exit 1
+}
+
+download_jar() {
+  group_id=$1
+  artifact_id=$2
+  version=$3
+  prefix="http://search.maven.org/remotecontent?filepath="
+  path=${1//.//}
+  jar_name=$artifact_id-$version.jar
+  url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
+  [[ -f ${dependencies_dir}/${jar_name} ]] || wget -P ${dependencies_dir} $url
+}
+
+download_dependencies() {
+  install -d ${dependencies_dir}
+  
+  echo "Downloading dependencies ..."
+  aws_java_sdk_version="1.10.26"
+  
+  remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
+                  com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
+                  com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
+                  com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
+                  com.fasterxml.jackson.core:jackson-core:2.6.3 \
+                  com.fasterxml.jackson.core:jackson-databind:2.6.3 \
+                  com.google.code.findbugs:jsr305:3.0.1 \
+                  com.google.guava:guava:18.0 \
+                  org.apache.httpcomponents:httpclient:4.5.1 \
+                  org.apache.httpcomponents:httpclient-cache:4.5.1 \
+                  org.apache.httpcomponents:httpmime:4.5.1 \
+                  org.apache.httpcomponents:httpcore:4.4.3 \
+                  org.apache.httpcomponents:httpcore-ab:4.4.3 \
+                  org.apache.httpcomponents:httpcore-nio:4.4.3 \
+                  commons-cli:commons-cli:1.2 \
+                  commons-codec:commons-codec:1.6 \
+                  commons-logging:commons-logging-adapters:1.1 \
+                  commons-logging:commons-logging-api:1.1 \
+                  org.apache.commons:commons-lang3:3.4 \
+                  log4j:log4j:1.2.17 \
+                  org.slf4j:slf4j-api:1.7.12 \
+                  org.slf4j:slf4j-log4j12:1.7.12 \
+                  com.beust:jcommander:1.48 \
+                  org.xerial:sqlite-jdbc:3.8.11.2 \
+                  joda-time:joda-time:2.8.2 \
+                  org.projectlombok:lombok:1.16.6"
+  
+  for package in ${remote_mvn_pkg}
+  do
+   download_jar $(echo $package | tr : " ")
+  done
+}
+
+do_uninstall () {
+  echo "Uninstalling $daemon_name ..."
+  # stop the service if it's running
+  if [ -f $agent_service ]; then
+    echo "Stopping $daemon_name..."
+    $agent_service stop
+  fi
+
+  # remove the service from system services
+  chkconfig --list $daemon_name > /dev/null 2>&1
+  if [ $? == 0 ]; then
+    echo "Removing $daemon_name from system services..."
+    sudo chkconfig --del $daemon_name
+  fi
+  
+  # remove the jars and config files
+  rm -rf ${state_dir}
+  rm -rf ${log_dir}
+  rm -rf ${jar_dir}
+  rm -f ${agent_service}
+  rm -f ${bin_dir}/start-${daemon_name}
+  
+  # remove the user for starting the agent
+  user_id=$(id -u $agent_user_name > /dev/null 2>&1)
+  [[ $? == 0 ]] && userdel $agent_user_name
+  
+  # remove sysconfig
+  rm -f ${sysconfig_dir}/${daemon_name}
+  
+  # remove cron job	
+  rm -f ${bin_dir}/${daemon_name}-babysit
+  rm -f ${cron_dir}/${daemon_name}
+
+  return 0
+}
+
+do_install () {
+  do_uninstall
+  download_dependencies
+  
+  echo "Installing Kinesis Agent ..."
+  
+  ant
+  [[ $? == 0 ]] || fail "Failed to build the Java project"
+  
+  install -d ${config_dir}
+  install -d ${jar_dir}
+  install -d ${init_dir}
+  install -d ${cron_dir}
+  install -d ${sysconfig_dir}
+  install -d ${log_dir}
+  install -d ${state_dir}
+  install -m755 ./bin/start-${daemon_name} ${bin_dir}
+  install -m755 ./bin/${daemon_name}-babysit ${bin_dir}
+  install -m644 ./${dependencies_dir}/* ${jar_dir}
+  install -m644 ./ant_build/lib/* ${jar_dir}
+  install -m755 ./bin/${daemon_name} ${init_dir}
+  install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
+  install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
+  
+  # add a user for starting the agent
+  user_id=$(id -u $agent_user_name > /dev/null 2>&1)
+  [[ $? == 0 ]] || useradd -c "Streaming Data Agent" -r $agent_user_name
+  usermod -L $agent_user_name
+  
+  # change the owner of log files and checkpoint files to the user
+  chown -R $agent_user_name $state_dir
+  chown -R $agent_user_name $log_dir
+  
+  config_file=${config_dir}/agent.json
+  [[ -f ${config_file} ]] || install -m644 ./configuration/release/${daemon_name}.json ${config_file}
+  echo "Configuration file installed at: ${config_file}"
+  echo "Configuration details:"
+  cat "${config_file}"
+  
+  /sbin/chkconfig --add $daemon_name
+  
+  echo "Amazon Kinesis Agent is installed successfully."
+  echo "To start the $daemon_name service, run:"
+  echo "  sudo service $daemon_name start"
+  echo "To stop the $daemon_name service, run:"
+  echo "  sudo service $daemon_name stop"
+  echo "To check the status of the $daemon_name service, run:"
+  echo "  sudo service $daemon_name status"
+  echo ""
+  echo "$daemon_name log file will be found at: $log_dir"
+  
+  echo "To make the agent automatically start at system startup, type:"
+  echo "  sudo chkconfig $daemon_name on"
+  echo ""
+  echo "Your installation has completed!"
+}
+
+COMMAND=$1
+case "$COMMAND" in
+  --install)
+    shift
+    do_install "$@"
+    ;;
+  --uninstall)
+    shift
+    do_uninstall "$@"
+    echo "Kinesis Agent has been uninstalled"
+    ;;
+  *)
+    usage
+    ;;
+esac

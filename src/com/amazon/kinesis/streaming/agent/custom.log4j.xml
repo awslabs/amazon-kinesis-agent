@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
+        <errorHandler class="com.amazon.kinesis.streaming.agent.CustomLog4jFallbackErrorHandler">
+            <root-ref />
+            <appender-ref ref="FALLBACK" />
+        </errorHandler>
+        <param name="File" value="/var/log/aws-kinesis-agent/aws-kinesis-agent.log" />
+        <param name="Encoding" value="UTF-8" />
+        <param name="MaxBackupIndex" value="5" />
+        <param name="MaxFileSize" value="10485760" />
+        <param name="Append" value="true" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
+        </layout>
+    </appender>
+    <appender name="FALLBACK" class="org.apache.log4j.RollingFileAppender">
+        <param name="File" value="/tmp/fallback-aws-kinesis-agent.log" />
+        <param name="Encoding" value="UTF-8" />
+        <param name="MaxBackupIndex" value="2" />
+        <param name="MaxFileSize" value="2097152" />
+        <param name="Append" value="true" />
+        <layout class="com.amazon.kinesis.streaming.agent.CustomLog4jFallbackPatterLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
+        </layout>
+    </appender>
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out" />
+        <param name="Encoding" value="UTF-8" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="LOG: %d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
+        </layout>
+    </appender>
+
+    <logger name="com.amazon.kinesis.streaming.agent.metrics.CWPublisherRunnable">
+        <level value="WARN" />
+    </logger>
+
+    <logger name="com.amazonaws.auth.AWS4Signer">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazonaws.http">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazonaws.internal">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazonaws.request">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.apache.http">
+        <level value="INFO" />
+    </logger>
+
+    <root>
+        <level value="INFO" />
+        <appender-ref ref="FILE" />
+    </root>
+</log4j:configuration>

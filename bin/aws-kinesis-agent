@@ -1,0 +1,217 @@
+#! /usr/bin/env bash
+
+### BEGIN INIT INFO
+# Provides:          aws-kinesis-agent
+# Required-Start:    $network
+# Required-Stop:     $network
+# Short-Description: Daemon for Amazon Kinesis Agent.
+# Description:       This script is responsible for running Amazon Kinesis Agent
+#                    as a daemon.
+### END INIT INFO
+
+# chkconfig: - 30 70
+# description: This script is responsible for running Amazon Kinesis Agent as a daemon.
+#
+# config: /etc/aws-kinesis/agent.json
+# config: /etc/sysconfig/aws-kinesis-agent
+
+# get init functions: checkpid(), status(), echo_success(), echo_failure()
+. /etc/init.d/functions
+
+# load any configs/environment from /etc/sysconfig/<name>
+[[ -f /etc/sysconfig/$DAEMON_NAME ]] && . /etc/sysconfig/$DAEMON_NAME
+
+# Log that something succeeded
+success() {
+  [ "$BOOTUP" != "verbose" -a -z "${LSB:-}" ] && echo_success
+  echo $1
+  return 0
+}
+
+# Log that something failed
+failure() {
+  local rc=$?
+  [ "$BOOTUP" != "verbose" -a -z "${LSB:-}" ] && echo_failure
+  echo $1
+  return $rc
+}
+
+#set -x
+DAEMON_NAME=aws-kinesis-agent
+AGENT_USER=aws-kinesis-agent-user
+PIDFILE=/var/run/$DAEMON_NAME.pid
+STATE_HOME=/var/run/$DAEMON_NAME
+LOG_DIR=/var/log/$DAEMON_NAME
+[[ -d $STATE_HOME ]] || mkdir -p $STATE_HOME
+MUTEXFILE=$STATE_HOME/mutex
+SHUTDOWN_TIME=11   #10 second default value in AgentConfiguration.java, +1 second buffer
+
+INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
+
+# This script is in /etc/rc.d/init.d/ and the executable is in /usr/bin
+BASEDIR=${BASEDIR%/}
+DAEMON_EXEC=$BASEDIR/usr/bin/start-$DAEMON_NAME
+SYSCONFIG_FILE=/etc/sysconfig/$DAEMON_NAME
+RETVAL=0
+
+do_start () {
+  # if lock file is there or if PID file is there and process is alive, return
+  if [[ -e $PIDFILE ]] && checkpid `cat $PIDFILE`; then
+    echo "$DAEMON_NAME already running. Use 'restart' command to restart it."
+    return
+  fi
+  
+  [ -f $SYSCONFIG_FILE ] && . $SYSCONFIG_FILE
+  export AWS_ACCESS_KEY_ID
+  export AWS_SECRET_ACCESS_KEY
+  export AWS_DEFAULT_REGION
+  
+  (
+    flock -w 10 -x 9
+    DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC $@" > $INITLOGFILE 2>&1 &
+
+    pid=$!
+    echo $pid > $PIDFILE
+
+    # wait a bit and make sure process still there
+    sleep 2
+    checkpid $pid
+    RETVAL=$?
+    # create the lock file
+    if [[ $RETVAL != 0 && -s $INITLOGFILE ]]; then
+      echo "Initialization logs can be found in $INITLOGFILE" >&2
+      cat $INITLOGFILE >&2
+    else
+      rm -f $INITLOGFILE
+    fi
+
+    # output status message
+    [[ $RETVAL == 0 ]] && success "$DAEMON_NAME startup" || failure "$DAEMON_NAME startup"
+
+  ) 9>$MUTEXFILE
+  RETVAL=$?
+  rm -f $MUTEXFILE
+  return $RETVAL
+}
+
+get_pids() {
+  # e.g. start-daemon -> [s]tart-daemon
+  #      this serves to exclude the grep command itself from matching process list
+  PROCESS_PATTERN=`basename $DAEMON_EXEC | sed 's/\([a-zA-Z0-9]\)/[\1]/'`
+  ps axo pid,args | grep "$PROCESS_PATTERN"
+}
+
+do_stop () {
+  (
+    flock -w 10 -x 9
+    ppids=`get_pids | awk '{print $1}'`
+    if [[ $? == 0 ]]; then
+      for pid in $ppids; do
+        pkill -TERM -P $pid > /dev/null 2>&1
+      done
+
+      i=0
+      while [[ $i -lt $SHUTDOWN_TIME ]] && get_pids > /dev/null; do
+        sleep 1
+        (( i = i + 1 ))
+      done
+
+      ppids=`get_pids | awk '{print $1}'`
+      if [[ $? == 0 ]]; then
+        for pid in $ppids; do
+          pkill -KILL -P $pid > /dev/null 2>&1
+        done
+      fi
+      procList=`get_pids`
+      if [ $? != 0 ]; then
+        RETVAL=0
+      else
+        RETVAL=1
+      fi
+    fi
+
+    # finally validate that the pid in the PIDFILE is gone
+    if [[ $RETVAL == 0 && -e $PIDFILE ]] && checkpid `cat $PIDFILE`; then
+      RETVAL=1
+    fi
+
+    # all OK? cleanup
+    [[ $RETVAL == 0 ]] && rm -f $PIDFILE
+
+    # print status message
+    [[ $RETVAL == 0 ]] && success "$DAEMON_NAME shutdown" || failure "$DAEMON_NAME shutdown"
+  ) 9>$MUTEXFILE
+  RETVAL=$?
+  rm -f $MUTEXFILE
+  return $RETVAL
+}
+
+do_status () {
+  status -p $PIDFILE $DAEMON_NAME
+}
+
+do_restart () {
+  do_stop && do_start
+}
+
+do_condrestart () {
+  if do_status >&/dev/null; then
+    do_restart
+  fi
+}
+
+do_install () {
+  local dest_dir=/etc/aws-kinesis
+  local src_dir=$BASEDIR/etc/aws-kinesis
+  local configfile=agent.json
+  if [[ "$src_dir" != "$dest_dir" ]]; then
+    mkdir -p "$dest_dir"
+    if [[ -f "$dest_dir/$configfile" ]]; then
+      echo "Configuration file found at: $dest_dir/$configfile"
+    else
+      cp "$src_dir/$configfile" "$dest_dir/"
+      echo "Configuration file installed at: $dest_dir/$configfile"
+    fi
+  fi
+  echo "Configuration details:"
+  cat "$dest_dir/$configfile"
+  echo ""
+  echo "Amazon Kinesis Streaming Data Agent is installed at $BASEDIR"
+  echo ""
+  echo "To start the $DAEMON_NAME service, run:"
+  echo "  sudo service $DAEMON_NAME start"
+  echo "To stop the $DAEMON_NAME service, run:"
+  echo "  sudo service $DAEMON_NAME stop"
+  echo "To check the status of the $DAEMON_NAME service, run:"
+  echo "  sudo service $DAEMON_NAME status"
+  echo ""
+  echo "$DAEMON_NAME log file will be found at: $LOG_DIR"
+}
+
+command=$1
+shift
+case "$command" in
+  start)
+    do_start "$@"
+    ;;
+  stop)
+    do_stop
+    ;;
+  restart)
+    do_restart "$@"
+    ;;
+  condrestart)
+    do_condrestart "$@"
+    ;;
+  status)
+    do_status
+    ;;
+  install)
+    do_install
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|condrestart|status|install}"
+    exit 1
+    ;;
+esac
+exit $RETVAL

@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<project basedir="." default="release" xmlns:unless="ant:unless">
+    <property name="agent.name" value="aws-kinesis-agent" />
+    <property name="agent.package.name" value="AWSKinesisStreamingDataAgent" />
+    <property name="agent.version" value="1.0" />
+    <property name="agent.vendor" value="Amazon.com, Inc." />
+
+    <property name="src.root" location="." />
+    <property name="src.dir" location="src" />
+    <property name="build.root" location="ant_build" />
+    <property name="build.private" location="${build.root}/private" />
+    <property name="build.lib" location="${build.root}/lib" />
+    <property name="build.dependencies" location="dependencies" />
+
+    <path id="classpath">
+        <fileset dir="/usr/share/java" includes="**/*.jar" />
+        <fileset dir="${build.dependencies}" includes="**/*.jar" />
+    </path>
+
+    <target name="get-java-version">
+      <condition property="current.java.version">
+        <or>
+          <equals arg1="${ant.java.version}" arg2="1.7"/>
+          <equals arg1="${ant.java.version}" arg2="1.8"/>
+        </or>
+      </condition>
+    </target>
+    <target name="check-java-version" depends="get-java-version" unless="current.java.version">
+        <fail message="Unsupported Java version: ${ant.java.version}. Make sure that the Java version is 1.7 or greater."/>
+    </target>
+    
+    <target name="init">
+        <mkdir dir="${build.root}" />
+    </target>
+
+    <target name="compile" depends="check-java-version, init">
+        <mkdir dir="${build.private}" />
+        <javac source="1.7" target="1.7" includeantruntime="false" classpathref="classpath" srcdir="${src.dir}" destdir="${build.private}" />
+        <property name="src.agent.path" value="com/amazon/kinesis/streaming/agent" />
+        <copy todir="${build.private}/${src.agent.path}" failonerror="true">
+            <fileset dir="${src.dir}/${src.agent.path}" excludes="**/*.java" />
+        </copy>
+    </target>
+
+    <target name="build" depends="compile">
+        <mkdir dir="${build.lib}" />
+        <jar jarfile="${build.lib}/${agent.package.name}-${agent.version}.jar" basedir="${build.private}">
+            <manifest>
+                <attribute name="Main-Class" value="com.amazon.kinesis.streaming.agent.Agent" />
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build.root}" />
+    </target>
+
+    <target name="release" depends="clean, compile, build" />
+
+</project>

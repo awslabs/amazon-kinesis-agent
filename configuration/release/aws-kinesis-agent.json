@@ -1,0 +1,17 @@
+{
+  "cloudwatch.emitMetrics": true,
+  "kinesis.endpoint": "",
+  "firehose.endpoint": "",
+  
+  "flows": [
+    {
+      "filePattern": "/tmp/app.log*",
+      "kinesisStream": "yourkinesisstream",
+      "partitionKeyOption": "RANDOM"
+    },
+    {
+      "filePattern": "/tmp/app.log*",
+      "deliveryStream": "yourdeliverystream"
+    }
+  ]
+}
