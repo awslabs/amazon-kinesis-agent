@@ -45,10 +45,10 @@ download_jar() {
 
 download_dependencies() {
   install -d ${dependencies_dir}
-  
+
   echo "Downloading dependencies ..."
   aws_java_sdk_version="1.10.26"
-  
+
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
@@ -75,11 +75,18 @@ download_dependencies() {
                   org.xerial:sqlite-jdbc:3.8.11.2 \
                   joda-time:joda-time:2.8.2 \
                   org.projectlombok:lombok:1.16.6"
-  
+
   for package in ${remote_mvn_pkg}
   do
    download_jar $(echo $package | tr : " ")
   done
+}
+
+do_build () {
+  download_dependencies
+
+  ant
+  [[ $? == 0 ]] || fail "Failed to build the Java project"
 }
 
 do_uninstall () {
@@ -96,22 +103,22 @@ do_uninstall () {
     echo "Removing $daemon_name from system services..."
     sudo chkconfig --del $daemon_name
   fi
-  
+
   # remove the jars and config files
   rm -rf ${state_dir}
   rm -rf ${log_dir}
   rm -rf ${jar_dir}
   rm -f ${agent_service}
   rm -f ${bin_dir}/start-${daemon_name}
-  
+
   # remove the user for starting the agent
   user_id=$(id -u $agent_user_name > /dev/null 2>&1)
   [[ $? == 0 ]] && userdel $agent_user_name
-  
+
   # remove sysconfig
   rm -f ${sysconfig_dir}/${daemon_name}
-  
-  # remove cron job	
+
+  # remove cron job
   rm -f ${bin_dir}/${daemon_name}-babysit
   rm -f ${cron_dir}/${daemon_name}
 
@@ -121,12 +128,11 @@ do_uninstall () {
 do_install () {
   do_uninstall
   download_dependencies
-  
+
   echo "Installing Kinesis Agent ..."
-  
-  ant
-  [[ $? == 0 ]] || fail "Failed to build the Java project"
-  
+
+  do_build
+
   install -d ${config_dir}
   install -d ${jar_dir}
   install -d ${init_dir}
@@ -141,24 +147,24 @@ do_install () {
   install -m755 ./bin/${daemon_name} ${init_dir}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
-  
+
   # add a user for starting the agent
   user_id=$(id -u $agent_user_name > /dev/null 2>&1)
   [[ $? == 0 ]] || useradd -c "Streaming Data Agent" -r $agent_user_name
   usermod -L $agent_user_name
-  
+
   # change the owner of log files and checkpoint files to the user
   chown -R $agent_user_name $state_dir
   chown -R $agent_user_name $log_dir
-  
+
   config_file=${config_dir}/agent.json
   [[ -f ${config_file} ]] || install -m644 ./configuration/release/${daemon_name}.json ${config_file}
   echo "Configuration file installed at: ${config_file}"
   echo "Configuration details:"
   cat "${config_file}"
-  
+
   /sbin/chkconfig --add $daemon_name
-  
+
   echo "Amazon Kinesis Agent is installed successfully."
   echo "To start the $daemon_name service, run:"
   echo "  sudo service $daemon_name start"
@@ -168,7 +174,7 @@ do_install () {
   echo "  sudo service $daemon_name status"
   echo ""
   echo "$daemon_name log file will be found at: $log_dir"
-  
+
   echo "To make the agent automatically start at system startup, type:"
   echo "  sudo chkconfig $daemon_name on"
   echo ""
@@ -180,6 +186,10 @@ case "$COMMAND" in
   --install)
     shift
     do_install "$@"
+    ;;
+  --build)
+    shift
+    do_build "$@"
     ;;
   --uninstall)
     shift
