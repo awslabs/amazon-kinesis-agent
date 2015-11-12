@@ -74,13 +74,20 @@ sudo ./setup --uninstall
 
 ## Building from Source
 
-The setup script is only tested on **Red Hat Enterprise Linux** version 7 or later and **Amazon Linux AMI** version 2015.09 or later. For other distributions or platforms, you can build the Java project with the following command:
+The installation done by the setup script is only tested on **Red Hat Enterprise Linux** version 7 or later and **Amazon Linux AMI** version 2015.09 or later. For other distributions or platforms, you can build the Java project with the following command:
 
 ```sh
-ant -buildfile ant_build.xml [-Dbuild.dependencies=DEPENDENCY_DIR]
+sudo ./setup --build
 ```
 
-You need to download all the dependencies listed in pom.xml before building the Java program. **DEPENDENCY_DIR** is the directory where you download and store the dependencies. By default, the Amazon Kinesis Agent reads the configuration file from /etc/aws-kinesis/agent.json. You need to create such a file if it does not already exist. A sample configuration can be found at ./configuration/release/aws-kinesis-agent.json
+or by using Ant target as you would build any Java program: 
+
+```sh
+ant [-Dbuild.dependencies=DEPENDENCY_DIR]
+```
+
+If you use Ant command, you need to download all the dependencies listed in pom.xml before building the Java program. **DEPENDENCY_DIR** is the directory where you download and store the dependencies. 
+By default, the Amazon Kinesis Agent reads the configuration file from /etc/aws-kinesis/agent.json. You need to create such a file if it does not already exist. A sample configuration can be found at ./configuration/release/aws-kinesis-agent.json
 
 To start the program, use the following command:
 

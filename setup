@@ -118,14 +118,18 @@ do_uninstall () {
   return 0
 }
 
+do_build () {
+  download_dependencies
+  
+  ant || fail "Failed to build the Java project"
+}
+
 do_install () {
   do_uninstall
-  download_dependencies
   
   echo "Installing Kinesis Agent ..."
   
-  ant
-  [[ $? == 0 ]] || fail "Failed to build the Java project"
+  do_build
   
   install -d ${config_dir}
   install -d ${jar_dir}
@@ -177,6 +181,10 @@ do_install () {
 
 COMMAND=$1
 case "$COMMAND" in
+  --build)
+    shift
+    do_build "$@"
+    ;;
   --install)
     shift
     do_install "$@"
