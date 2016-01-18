@@ -21,7 +21,17 @@ public interface IRecord {
     public long lengthWithOverhead();
     public long length();
     public TrackedFile file();
+
+    /**
+     * NOTE: Used by {@link RecordBuffer} for checkpointing only.
+     * @return Offset of in data buffer pointing to the end of data
+     */
     public long endOffset();
+
+    /**
+     * NOTE: Used by {@link RecordBuffer} for checkpointing only.
+     * @return Offset of in data buffer pointing to the beginning of data
+     */
     public long startOffset();
 
     /**
