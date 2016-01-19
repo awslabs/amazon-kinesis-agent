@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.amazon.kinesis.streaming.agent.extension.AgentConverterExample;
 import com.amazon.kinesis.streaming.agent.extension.DataConversionException;
 import com.amazon.kinesis.streaming.agent.extension.DummyDataConverter;
 import com.amazon.kinesis.streaming.agent.extension.IDataConverter;

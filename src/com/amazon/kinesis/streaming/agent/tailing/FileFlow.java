@@ -158,7 +158,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
      *   "flows": [{
      *     "filePattern": "/tmp/aws-kinesis-agent-test1.log*",
      *     "kinesisStream": "aws-kinesis-agent-test1",
-     *     "converterClass": "com.amazon.kinesis.streaming.agent.extension.AgentConverterExample"
+     *     "converterClass": "com.amazon.kinesis.streaming.agent.extension.BracketsDataConverter"
      *   },
      * </code>
      *
