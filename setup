@@ -40,7 +40,7 @@ download_jar() {
   path=${1//.//}
   jar_name=$artifact_id-$version.jar
   url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
-  [[ -f ${dependencies_dir}/${jar_name} ]] || wget -P ${dependencies_dir} $url
+  [[ -f ${dependencies_dir}/${jar_name} ]] || wget -O "${dependencies_dir}/${jar_name}" -P ${dependencies_dir} $url
 }
 
 download_dependencies() {
@@ -48,7 +48,9 @@ download_dependencies() {
   
   echo "Downloading dependencies ..."
   aws_java_sdk_version="1.10.26"
-  
+
+  # TODO Add "com.amazonaws:amazon-kinesis-agent-extension:1.0" if put into maven central,
+  # use local amazon-kinesis-agent-extension JAR as a temporary workaround.
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
@@ -75,10 +77,18 @@ download_dependencies() {
                   org.xerial:sqlite-jdbc:3.8.11.2 \
                   joda-time:joda-time:2.8.2 \
                   org.projectlombok:lombok:1.16.6"
-  
+
   for package in ${remote_mvn_pkg}
   do
    download_jar $(echo $package | tr : " ")
+  done
+
+  # TODO Replace this with maven dependency after extension sub-project is put into maven central
+  # Build and copy extension JAR if exists
+  local_jars="../amazon-kinesis-agent-extension/target/amazon-kinesis-agent-extension-1.0.jar"
+  for local_jar in ${local_jars};
+  do
+   cp -f "${local_jar}" "${dependencies_dir}/"
   done
 }
 
