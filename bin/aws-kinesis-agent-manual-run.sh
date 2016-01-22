@@ -7,7 +7,8 @@ JAVA_MAX_HEAP="512m"
 
 JAVA_DIR="/usr/share/java"
 LIB_DIR="/usr/share/aws-kinesis-agent/lib"
-CLASSPATH="$JAVA_DIR"/*:"$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
+#CLASSPATH="$JAVA_DIR"/*:"$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
+CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
 
 JAVACMD="java"
 JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
