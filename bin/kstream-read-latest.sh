@@ -19,7 +19,7 @@ iteratorType="TRIM_HORIZON"
 
 # Get shard ID, first shard in the list
 shardId=$(aws kinesis describe-stream \
-    --stream-name asw-test-1 | grep SHARDS | awk '{print $2}')
+    --stream-name $streamName | grep SHARDS | awk '{print $2}')
 if [ -z "$shardId" ]; then
     echo "Shard not found: [$shardId]"
     exit 2
@@ -48,3 +48,6 @@ while [ $kRecordsRead -lt $recordsNumber ] && [ $kMaxReadDepth -gt 0 ]; do
 done
 
 rm -f "$tmpFile"
+
+echo ""
+
