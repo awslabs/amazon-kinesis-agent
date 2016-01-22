@@ -40,9 +40,10 @@ while [ $kRecordsRead -lt $recordsNumber ] && [ $kMaxReadDepth -gt 0 ]; do
     foundRowsNum=$(cat "$tmpFile" | awk 'NR==1{print $1; exit}')
     shardIter=$(cat "$tmpFile" | awk 'NR==1{print $2; exit}')
     cat "$tmpFile" | awk '{print $3}' | while read line; do
+        echo ""
         echo -n ">> $kRecordsRead: "
         echo $line | base64 --decode
-        kRecordsRead=$(( kRecordsRead + 1 ))
+		kRecordsRead=$(( kRecordsRead + 1 ))
     done
     kMaxReadDepth=$(( kMaxReadDepth - 1 ))
 done
