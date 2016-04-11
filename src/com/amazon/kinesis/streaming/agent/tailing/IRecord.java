@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -21,18 +21,9 @@ public interface IRecord {
     public long lengthWithOverhead();
     public long length();
     public TrackedFile file();
-
-    /**
-     * NOTE: Used by {@link RecordBuffer} for checkpointing only.
-     * @return Offset of in data buffer pointing to the end of data
-     */
     public long endOffset();
-
-    /**
-     * NOTE: Used by {@link RecordBuffer} for checkpointing only.
-     * @return Offset of in data buffer pointing to the beginning of data
-     */
     public long startOffset();
+    public boolean shouldSkip();
 
     /**
      * This method should make sure the truncated record has the appropriate

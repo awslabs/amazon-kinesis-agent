@@ -1,0 +1,6 @@
+Mar 12 12:00:08 server2 rcd[308]: Unable to downloaded licenses info: Unable to authenticate - Authorization Required (https://server2/data/red-carpet.rdf)
+Mar 12 12:10:00 server2 /USR/SBIN/CRON[6808]: (root) CMD ( /usr/lib/sa/sa1 )
+Mar 7 04:22:00 avas CROND[11460]: (cronjob) CMD (run-parts /etc/cron.weekly) 
+Mar 7 04:22:00 avas anacron[11464]: Updated timestamp for job `cron.weekly' to 2004-03-07
+Mar 12 12:01:02 server4 snort: alert_multiple_requests: ACTIVE
+Mar 12 12:17:03 server7 sshd[26501]: pam_authenticate: error Authentication failed 

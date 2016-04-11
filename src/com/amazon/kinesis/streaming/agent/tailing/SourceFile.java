@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -27,6 +27,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Specification of the file(s) to be tailed.
@@ -68,7 +69,7 @@ public class SourceFile {
         List<TrackedFile> files = new ArrayList<>();
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory)) {
             for (Path p : directoryStream) {
-                if (this.pathMatcher.matches(p.getFileName())) {
+                if (this.pathMatcher.matches(p.getFileName()) && validateFile(p)) {
                     files.add(new TrackedFile(flow, p));
                 }
             }
@@ -91,7 +92,7 @@ public class SourceFile {
         if(Files.exists(this.directory)) {
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(this.directory)) {
                 for (Path p : directoryStream) {
-                    if (this.pathMatcher.matches(p.getFileName())) {
+                    if (this.pathMatcher.matches(p.getFileName()) && validateFile(p)) {
                         ++count;
                     }
                 }
@@ -113,5 +114,21 @@ public class SourceFile {
     private void validateDirectory(Path dir) {
         Preconditions.checkArgument(dir != null, "Directory component is empty!");
         // TODO: validate that the directory component has no glob characters
+    }
+    
+    /**
+     * Make sure to ignore invalid file for streaming
+     * e.g. well known compressed file extensions
+     * @param file
+     */
+    private boolean validateFile(Path file) {
+        List<String> ignoredExtensions = ImmutableList.of(".gz", ".bz2", ".zip"); 
+        
+        for (String extension : ignoredExtensions) {
+            if (file.toString().toLowerCase().endsWith(extension))
+                return false;
+        }
+        
+        return true;
     }
 }

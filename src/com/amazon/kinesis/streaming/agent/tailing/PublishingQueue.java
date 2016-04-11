@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -162,7 +162,9 @@ public final class PublishingQueue<R extends IRecord> implements IHeartbeatProvi
                     Preconditions.checkState(currentBuffer.sizeBytesWithOverhead() + record.lengthWithOverhead() <= flow.getMaxBufferSizeBytes());
                 }
                 // Add record
-                currentBuffer.add(record);
+                if (!record.shouldSkip()) {
+                    currentBuffer.add(record);
+                }
                 return true;
             } else
                 return false;

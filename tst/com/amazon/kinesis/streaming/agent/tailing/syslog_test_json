@@ -1,0 +1,6 @@
+{"timestamp":"Mar 12 12:00:08","hostname":"server2","program":"rcd","processid":"308","message":"Unable to downloaded licenses info: Unable to authenticate - Authorization Required (https://server2/data/red-carpet.rdf)"}
+{"timestamp":"Mar 12 12:10:00","hostname":"server2","program":"/USR/SBIN/CRON","processid":"6808","message":"(root) CMD ( /usr/lib/sa/sa1 )"}
+{"timestamp":"Mar 7 04:22:00","hostname":"avas","program":"CROND","processid":"11460","message":"(cronjob) CMD (run-parts /etc/cron.weekly) "}
+{"timestamp":"Mar 7 04:22:00","hostname":"avas","program":"anacron","processid":"11464","message":"Updated timestamp for job `cron.weekly' to 2004-03-07"}
+{"timestamp":"Mar 12 12:01:02","hostname":"server4","program":"snort","processid":null,"message":"alert_multiple_requests: ACTIVE"}
+{"timestamp":"Mar 12 12:17:03","hostname":"server7","program":"sshd","processid":"26501","message":"pam_authenticate: error Authentication failed "}

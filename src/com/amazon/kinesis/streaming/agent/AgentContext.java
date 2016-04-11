@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -85,9 +85,8 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
         if (containsKey("flows")) {
             for (Configuration c : readList("flows", Configuration.class)) {
                 FileFlow<?> flow = fileFlowFactory.getFileFlow(this, c);
-                if (flows.containsKey(flow.getId())) {
+                if (flows.containsKey(flow.getId()))
                     throw new ConfigurationException("Duplicate flow: " + flow.getId());
-                }
                 flows.put(flow.getId(), flow);
             }
         }

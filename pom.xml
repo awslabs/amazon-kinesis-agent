@@ -6,7 +6,7 @@
     <artifactId>amazon-kinesis-agent</artifactId>
     <packaging>jar</packaging>
     <name>Amazon Kinesis Agent</name>
-    <version>1.0</version>
+    <version>1.1</version>
     <description>Amazon Kinesis Agent runs on customer hosts and continuously monitors a set of log files and sends new data to the Amazon Kinesis Stream and Amazon Kinesis Firehose services in near-real-time.</description>
     <url>https://aws.amazon.com/kinesis</url>
 
@@ -23,7 +23,7 @@
     </licenses>
 
     <properties>
-        <aws-java-sdk.version>1.10.26</aws-java-sdk.version>
+        <aws-java-sdk.version>1.10.67</aws-java-sdk.version>
     </properties>
 
     <dependencies>
@@ -36,11 +36,6 @@
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-kinesis</artifactId>
           <version>${aws-java-sdk.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>amazon-kinesis-agent-extension</artifactId>
-            <version>1.0</version>
         </dependency>
         <dependency>
           <groupId>com.amazonaws</groupId>
@@ -162,12 +157,6 @@
           <artifactId>lombok</artifactId>
           <version>1.16.6</version>
         </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>1.9.5</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <developers>
@@ -217,40 +206,6 @@
             </execution>
           </executions>
         </plugin>
-          <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>build-helper-maven-plugin</artifactId>
-              <version>1.10</version>
-              <executions>
-                  <execution>
-                      <id>add-test-source</id>
-                      <phase>generate-test-sources</phase>
-                      <goals>
-                          <goal>add-test-source</goal>
-                      </goals>
-                      <configuration>
-                          <sources>
-                              <source>test/java</source>
-                          </sources>
-                      </configuration>
-                  </execution>
-                  <execution>
-                      <id>add-test-resource</id>
-                      <phase>generate-test-resources</phase>
-                      <goals>
-                          <goal>add-test-resource</goal>
-                      </goals>
-                      <configuration>
-                          <resources>
-                              <resource>
-                                  <directory>test/resources</directory>
-                                  <targetPath>resources</targetPath>
-                              </resource>
-                          </resources>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
       </plugins>
     </build>
 

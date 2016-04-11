@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -14,12 +14,12 @@
 package com.amazon.kinesis.streaming.agent.tailing;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import com.amazon.kinesis.streaming.agent.extension.IDataConverter;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -27,6 +27,9 @@ import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.Constants;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.config.ConfigurationException;
+import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
+import com.amazon.kinesis.streaming.agent.processing.processors.AgentDataConverterChain;
+import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -53,7 +56,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public static final String WAIT_ON_FULL_RETRY_QUEUE_MILLIS_KEY = "waitOnFullRetryQueueMillis";
     public static final String INITIAL_POSITION_KEY = "initialPosition";
     public static final String DEFAULT_TRUNCATED_RECORD_TERMINATOR = String.valueOf(Constants.NEW_LINE);
-    public static final String CONVERTER_CLASS_KEY = "converterClass";
+    public static final String CONVERSION_OPTION_KEY = "dataProcessingOptions";
 
     @Getter protected final AgentContext agentContext;
     @Getter protected final SourceFile sourceFile;
@@ -70,12 +73,12 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     @Getter protected final long retryInitialBackoffMillis;
     @Getter protected final long retryMaxBackoffMillis;
     @Getter protected final int publishQueueCapacity;
-    @Getter protected final String converterClass;
+    @Getter protected final IDataConverter dataConverter;
 
     protected FileFlow(AgentContext context, Configuration config) {
         super(config);
         this.agentContext = context;
-
+        
         sourceFile = buildSourceFile();
 
         maxBufferAgeMillis = readLong(MAX_BUFFER_AGE_MILLIS_KEY, getDefaultMaxBufferAgeMillis());
@@ -108,8 +111,9 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
             throw new ConfigurationException("Record terminator not specified or exceeds the maximum record size");
         }
         recordTerminatorBytes = terminatorConfig.getBytes(StandardCharsets.UTF_8);
-
-        converterClass = readString(CONVERTER_CLASS_KEY);
+        
+        List<Configuration> dataProcessingOptions = readList(CONVERSION_OPTION_KEY, Configuration.class, Collections.EMPTY_LIST);
+        dataConverter = buildConverterChain(dataProcessingOptions);
     }
 
     public synchronized FileTailer<R> createTailer(FileCheckpointStore checkpoints, ExecutorService sendingExecutor) throws IOException {
@@ -147,52 +151,22 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     protected SourceFile buildSourceFile() {
         return new SourceFile(this, readString(FILE_PATTERN_KEY));
     }
-
-    /**
-     * Build data converter object by its class name.
-     *
-     * Configuration property "converterClass" under "flows" entry.
-     *
-     * Example piece of config file:
-     * <code>
-     *   "flows": [{
-     *     "filePattern": "/tmp/aws-kinesis-agent-test1.log*",
-     *     "kinesisStream": "aws-kinesis-agent-test1",
-     *     "converterClass": "com.amazon.kinesis.streaming.agent.extension.BracketsDataConverter"
-     *   },
-     * </code>
-     *
-     * @return Data converter object of type {@link IDataConverter}
-     * @throws IllegalArgumentException
-     * @throws NoSuchMethodException
-     * @throws ClassNotFoundException
-     * @throws IllegalAccessException
-     * @throws InvocationTargetException
-     * @throws InstantiationException
-     */
-    protected IDataConverter buildConverter() throws IllegalArgumentException, NoSuchMethodException,
-            ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        // Converter fully-qualified class name is defined in the agent's config file
-        if (!hasConverter()) {
-            throw new IllegalArgumentException("Converter class is not specified");
+    
+    protected IDataConverter buildConverterChain(List<Configuration> conversionOptions) throws ConfigurationException {
+        if (conversionOptions == null || conversionOptions.isEmpty())
+            return null;
+        
+        List<IDataConverter> converters = new LinkedList<IDataConverter>();
+        
+        for (Configuration conversionOption : conversionOptions) {
+            converters.add(ProcessingUtilsFactory.getDataConverter(conversionOption));
         }
-        Class<?> clazz = Class.forName(converterClass);
-        Constructor<?> ctor = clazz.getConstructor();
-
-        // Create instance and make sure it implements data converter interface
-        Object object = ctor.newInstance(new Object[] {});
-        if (object instanceof IDataConverter) {
-            return (IDataConverter) object;
+        
+        try {
+            return new AgentDataConverterChain(converters);
+        } catch (IllegalArgumentException e) {
+            throw new ConfigurationException("Not able to create converter chain. ", e);
         }
-        throw new IllegalArgumentException("Specified converted class does not implement interface: "
-                + IDataConverter.class);
-    }
-
-    /**
-     * @return True if convert class property is set, false otherwise
-     */
-    protected boolean hasConverter() {
-        return converterClass != null && !converterClass.isEmpty();
     }
 
     protected abstract SourceFileTracker buildSourceFileTracker() throws IOException;

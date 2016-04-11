@@ -1,0 +1,42 @@
+{
+  "maxConnections": 1,
+  "connectionTimeoutMillis": 12,
+  "connectionTTLMillis": 123,
+  "socketTimeoutMillis": 1234,
+  "useHttpGzip": true,
+  "useTcpKeepAlive": true,
+  "checkpointFile": "/var/run/aws-kinesis-agent/checkpoints",
+  "maxSendingThreads": 8,
+  /*
+   * Flag for emitting Cloudwatch Metrics. Set to false if you don't want this
+   *  agent to send metrics to Cloudwatch.
+   * NOTE: Emitting metrics to Cloudwatch could incur extra costs on your AWS
+   *  account.
+   */
+  "cloudwatch.emitMetrics": false,
+  "cloudwatch.metricsBufferTimeMillis": 25,
+  "cloudwatch.metricsQueueSize": 100,
+  "awsAccessKeyId": "ACCESS_ID",
+  "awsSecretAccessKey": "SECRET_KEY",
+  "flows": [
+    {
+      "maxBufferAgeMillis": 10000,
+      /*
+       * A glob of the files that need to be watched by this agent.
+       * Any file that matches this pattern will be candidate for tailing.
+       * The agent will keep watching files that match this glob and whenever
+       *  a new file shows up it will be picked up and consumed.
+       */
+      "filePattern": "/var/log/prefix1*",
+      /*
+       * The name of the firehose to send the data to. The firehose must exist
+       *  in your account and must be properly configured.
+       */
+      "deliveryStream": "fh1"
+    },
+    {
+      "filePattern": "/prefix2*",
+      "deliveryStream": "fh2"
+    }
+  ]
+}

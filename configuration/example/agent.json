@@ -6,16 +6,28 @@
   "awsAccessKeyId": "ACCESSKEY",
   "awsSecretAccessKey": "SECRETKEY",
   "flows": [
-  {
-    "filePattern": "/tmp/aws-kinesis-agent-test1.log*",
-    "initialPosition": "END_OF_FILE",
-    "kinesisStream": "aws-kinesis-agent-test1",
-    "converterClass": "com.amazon.kinesis.streaming.agent.extension.BracketsDataConverter"
-  },
-  {
-    "filePattern": "/tmp/aws-kinesis-agent-test2.log*",
-    "initialPosition": "START_OF_FILE",
-    "kinesisStream": "aws-kinesis-agent-test2"
-  }
+    {
+      "filePattern": "/tmp/aws-kinesis-agent-test1.log*",
+      "initialPosition": "END_OF_FILE",
+      "kinesisStream": "aws-kinesis-agent-test1",
+      "dataProcessingOptions": [
+        {
+          "optionName": "CSVTOJSON",
+          "customFieldNames": [ "field1", "field2", "field3" ],
+          "delimiter": "\\t"
+        }
+      ]
+    },
+    {
+      "filePattern": "/tmp/aws-kinesis-agent-test2.log*",
+      "initialPosition": "START_OF_FILE",
+      "kinesisStream": "aws-kinesis-agent-test2",
+      "dataProcessingOptions": [
+        {
+          "optionName": "LOGTOJSON",
+          "logFormat": "COMMONAPACHELOG"
+        }
+      ]
+    }
   ]
 }

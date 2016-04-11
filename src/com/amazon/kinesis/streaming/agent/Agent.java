@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -13,6 +13,18 @@
  */
 
 package com.amazon.kinesis.streaming.agent;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.AgentOptions;
@@ -29,17 +41,6 @@ import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.slf4j.Logger;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Main class for AWS Firehose Agent.
@@ -85,13 +86,11 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             if (config == null) {
                 config = readConfigurationFile(Paths.get(opts.getConfigFile()));
             }
-            // Initialize agent context
+            // Initialize and start the agent
             AgentContext agentContext = new AgentContext(config);
             if (agentContext.flows().isEmpty()) {
                 throw new ConfigurationException("There are no flows configured in configuration file.");
             }
-
-            // Start the agent
             final Agent agent = new Agent(agentContext);
 
             // Make sure everything terminates cleanly when process is killed

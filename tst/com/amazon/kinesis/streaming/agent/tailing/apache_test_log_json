@@ -1,0 +1,7 @@
+{"host":"64.242.88.10","ident":null,"authuser":null,"datetime":"07/Mar/2004:16:05:49 -0800","request":"GET /twiki/bin/edit/Main/Double_bounce_sender?topicparent=Main.ConfigurationVariables HTTP/1.1","response":"401","bytes":"12846"}
+{"host":"64.242.88.10","ident":null,"authuser":null,"datetime":"07/Mar/2004:16:10:02 -0800","request":"GET /mailman/listinfo/hsdivision HTTP/1.1","response":"200","bytes":"6291"}
+{"host":"64.242.88.10","ident":null,"authuser":null,"datetime":"07/Mar/2004:16:11:58 -0800","request":"GET /twiki/bin/view/TWiki/WikiSyntax HTTP/1.1","response":"200","bytes":"7352"}
+{"host":"64.242.88.10","ident":null,"authuser":null,"datetime":"07/Mar/2004:16:20:55 -0800","request":"GET /twiki/bin/view/Main/DCCAndPostFix HTTP/1.1","response":"200","bytes":"5253"}
+{"host":"64.242.88.10","ident":null,"authuser":null,"datetime":"07/Mar/2004:16:23:12 -0800","request":"GET /twiki/bin/oops/TWiki/AppendixFileSystem?template=oopsmore¶m1=1.12¶m2=1.12 HTTP/1.1","response":"200","bytes":"11382"}
+{"host":"lj1036.inktomisearch.com","ident":null,"authuser":null,"datetime":"07/Mar/2004:17:18:36 -0800","request":"GET /robots.txt HTTP/1.0","response":"200","bytes":"68"}
+{"host":"lj1090.inktomisearch.com","ident":null,"authuser":null,"datetime":"07/Mar/2004:17:18:41 -0800","request":"GET /twiki/bin/view/Main/LondonOffice HTTP/1.0","response":"200","bytes":"3860"}

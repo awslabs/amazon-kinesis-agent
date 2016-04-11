@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -261,20 +261,25 @@ public class Configuration {
      *
      * @param enumType
      * @param key
-     * @return the enum constant at given key, or <code>fallback</code> if the
-     *         key does not exist in the configuration.
+     * @return the enum constant at given key.
      * @throws ConfigurationException
      *             if the enum constant failed to be returned.
      */
     public <E extends Enum<E>> E readEnum(Class<E> enumType, String key) {
-        try {
-            return Enum.valueOf(enumType, readString(key));
-        } catch (Exception e) {
+        String stringVal = readString(key, null);
+        if(stringVal != null) {
+            try {
+                return Enum.valueOf(enumType, stringVal);
+            } catch (Exception e) {
+                throw new ConfigurationException(
+                        String.format(
+                                "Value(%s) is not legally accepted by key: %s. " +
+                                "Legal values are %s",
+                                stringVal, key, Joiner.on(",").join(enumType.getEnumConstants())), e);
+            }
+        } else
             throw new ConfigurationException(
-                    String.format(
-                            "Failed to return the enum constant of the enum type(%s): %s",
-                            enumType.toString(), key), e);
-        }
+                    "Required configuration value missing: " + key);
     }
 
     /**
@@ -363,6 +368,18 @@ public class Configuration {
     public <T> List<T> readList(String key, Class<T> itemType) {
         return new ListReader<T>(itemType).read(key);
     }
+    
+    /**
+    * Return the fallback value whenever an exception is thrown
+    *
+    * @param key
+    * @param itemType
+    * @param fallback
+    * @return
+    */
+   public <T> List<T> readList(String key, Class<T> itemType, List<T> fallback) {
+       return new ListReader<T>(itemType).read(key, fallback);
+   }
 
     /**
      *
@@ -492,7 +509,24 @@ public class Configuration {
 
         @Override
         public List<T> read(String key, List<T> fallback) {
-            throw new UnsupportedOperationException();
+            Preconditions.checkNotNull(key);
+            if (configMap.containsKey(key)) {
+                Object value = configMap.get(key);
+                if (value == null) {
+                    return null;
+                } else if (value instanceof Iterable
+                        || value.getClass().isArray()) {
+                    List<?> inputList = value.getClass().isArray() ? Arrays
+                            .asList(value) : (List<?>) (value);
+                    List<T> result = new ArrayList<>(inputList.size());
+                    for (Object item : inputList) {
+                        result.add(convertItem(key, item));
+                    }
+                    return result;
+                } else
+                    return fallback;
+            } else
+                return fallback;
         }
 
         @SuppressWarnings("unchecked")

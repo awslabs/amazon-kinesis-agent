@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -14,7 +14,6 @@
 package com.amazon.kinesis.streaming.agent.tailing;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -23,15 +22,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.amazon.kinesis.streaming.agent.extension.DataConversionException;
-import com.amazon.kinesis.streaming.agent.extension.DummyDataConverter;
-import com.amazon.kinesis.streaming.agent.extension.IDataConverter;
 import lombok.Getter;
 
 import org.slf4j.Logger;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.Logging;
+import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
+import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow.InitialPosition;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -53,9 +51,9 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
     @Getter protected final String name;
     @Getter protected final ISplitter recordSplitter;
     @Getter protected final int bufferSize;
-    @Getter protected final IDataConverter dataConverter;
 
     @Getter protected TrackedFile currentFile;
+    @Getter protected final IDataConverter dataConverter;
     @VisibleForTesting
     FileChannel currentFileChannel;
     private long currentFileChannelOffset = -1;
@@ -75,6 +73,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
     private final AtomicLong totalRecordsParsed = new AtomicLong();
     private final AtomicLong totalRecordsLargerThanBuffer = new AtomicLong();
     private final AtomicLong totalUndhandledErrors = new AtomicLong();
+    private final AtomicLong totalRecordsProcessed = new AtomicLong();
     private final AtomicLong totalDataProcessingErrors = new AtomicLong();
 
     public AbstractParser(FileFlow<R> flow) {
@@ -87,34 +86,9 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         this.flow = flow;
         this.name = getClass().getSimpleName() + "[" + flow.getId() + "]";
         this.recordSplitter = this.flow.getRecordSplitter();
+        this.dataConverter = this.flow.getDataConverter();
         this.bufferSize = bufferSize;
         this.logger = Logging.getLogger(getClass());
-
-        if (flow.hasConverter()) {
-            // Make sure we can create converter class, fail with error otherwise
-            try {
-                this.dataConverter = flow.buildConverter();
-            } catch (NoSuchMethodException e) {
-                logger.error("No public constructor defined for data converter " + IDataConverter.class, e);
-                throw new IllegalArgumentException(e);
-            } catch (ClassNotFoundException e) {
-                logger.error("Data converter implementation class not found for " + IDataConverter.class, e);
-                throw new IllegalArgumentException(e);
-            } catch (IllegalAccessException e) {
-                logger.error("No public constructor defined for data converter " + IDataConverter.class, e);
-                throw new IllegalArgumentException(e);
-            } catch (InvocationTargetException e) {
-                logger.error("Cannot call constructor of data converter implementing " + IDataConverter.class, e);
-                throw new IllegalArgumentException(e);
-            } catch (InstantiationException e) {
-                logger.error("Cannot instantiate data converter implementing " + IDataConverter.class, e);
-                throw new IllegalArgumentException(e);
-            }
-        } else {
-            // Use dummy converter implementation if non is specified. This converter basically returns
-            // the same data without applying any conversions
-            this.dataConverter = new DummyDataConverter();
-        }
     }
 
     @Override
@@ -492,19 +466,30 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         ByteBuffer data = ByteBuffers.getPartialView(currentBuffer, offset, length);
         ++recordsFromCurrentBuffer;
         Preconditions.checkNotNull(currentBufferFile);
+        
         R record = null;
         try {
             record = buildRecord(currentBufferFile, convertData(data), toChannelOffset(offset));
-            totalRecordsParsed.incrementAndGet();
         } catch (DataConversionException e) {
             totalDataProcessingErrors.incrementAndGet();
             logger.warn("Cannot process input data: " + e.getMessage());
+            record = buildRecord(currentBufferFile, data, toChannelOffset(offset));
+        } finally {
+            totalRecordsParsed.incrementAndGet();
         }
+        
         return record;
     }
-
+    
     private ByteBuffer convertData(ByteBuffer data) throws DataConversionException {
-        return dataConverter.convert(data);
+        if (getDataConverter() == null)
+            return data;
+        
+        ByteBuffer result = getDataConverter().convert(data);
+        if (result != null) {
+            totalRecordsProcessed.incrementAndGet();
+        }
+        return result;
     }
 
     private long toChannelOffset(int bufferOffset) {
@@ -533,8 +518,9 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
             put(className + ".TotalRecordsParsed", totalRecordsParsed);
             put(className + ".TotalBytesDiscarded", totalBytesDiscarded);
             put(className + ".TotalRecordsLargerThanBuffer", totalRecordsLargerThanBuffer);
-            put(className + ".TotalDataProcessingErrors", totalDataProcessingErrors);
             put(className + ".TotalUnhandledErrors", totalUndhandledErrors);
+            put(className + ".TotalRecordsProcessed", totalRecordsProcessed);
+            put(className + ".TotalDataProcessingErrors", totalDataProcessingErrors);
         }};
     }
 }

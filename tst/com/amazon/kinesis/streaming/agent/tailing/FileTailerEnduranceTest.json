@@ -1,0 +1,14 @@
+{
+  "checkpointFile": "/tmp/FileTailerEnduranceTest.checkpoints",
+  "flows": [
+    {
+      "filePattern": "flow1,5000,100,5000,5",
+      "deliveryStream": "flow1",
+      "initialPosition": "START_OF_FILE",
+      "retryInitialBackoffMillis": 10,
+      "retryMaxBackoffMillis": 100,
+      "maxTimeBetweenFileTrackerRefreshMillis": 1000,
+      "log.emitInternalMetrics": true
+    }
+  ]
+}

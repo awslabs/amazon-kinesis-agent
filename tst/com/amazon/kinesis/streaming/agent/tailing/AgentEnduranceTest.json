@@ -1,0 +1,13 @@
+{
+  "checkpointFile": "/tmp/AgentEnduranceTest.checkpoints",
+  "log.emitInternalMetrics": true,
+  "flows": [
+    {
+      "filePattern": "flow1,5000,100,12000,5",
+      "deliveryStream": "flow1",
+      "initialPosition": "START_OF_FILE",
+      "retryInitialBackoffMillis": 10,
+      "retryMaxBackoffMillis": 100
+    }
+  ]
+}

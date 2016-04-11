@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
  * Base implementation of an {@link IRecord} interface.
  */
 public abstract class AbstractRecord  implements IRecord {
+    protected boolean shouldSkip = false;
     protected final ByteBuffer data;
     protected final TrackedFile file;
     protected final long startOffset;
@@ -31,6 +32,9 @@ public abstract class AbstractRecord  implements IRecord {
         Preconditions.checkArgument(offset >= 0,
                 "The offset of a record (%s) must be a non-negative integer (File: %s)",
                 offset, file);
+        if (data == null) {
+            skip();
+        }
         this.data = data;
         this.file = file;
         this.startOffset = offset;
@@ -42,7 +46,7 @@ public abstract class AbstractRecord  implements IRecord {
     
     @Override
     public long dataLength() {
-        return data.remaining();
+        return data == null ? 0 : data.remaining();
     }
 
     @Override
@@ -68,6 +72,15 @@ public abstract class AbstractRecord  implements IRecord {
     @Override
     public TrackedFile file() {
         return file;
+    }
+    
+    @Override
+    public boolean shouldSkip() {
+        return this.shouldSkip;
+    }
+    
+    public void skip() {
+        this.shouldSkip = true;
     }
     
     @Override

@@ -1,0 +1,20 @@
+{
+  "checkpointFile": "/tmp/AgentEndToEndTestHighThroughput.checkpoints",
+  "log.emitInternalMetrics": true,
+  "flows": [
+    {
+      "filePattern": "flow1,10000,100,60000,5",
+      "deliveryStream": "flow1",
+      "initialPosition": "START_OF_FILE",
+      "retryInitialBackoffMillis": 10,
+      "retryMaxBackoffMillis": 100
+    },
+    {
+      "filePattern": "flow2,20000,100,60000,5",
+      "deliveryStream": "flow2",
+      "initialPosition": "END_OF_FILE",
+      "retryInitialBackoffMillis": 10,
+      "retryMaxBackoffMillis": 100
+    }
+  ]
+}

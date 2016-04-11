@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <appender name="FILE" class="org.apache.log4j.FileAppender">
+        <param name="File" value="build/brazil-unit-tests/test.log" />
+        <param name="Encoding" value="UTF-8" />
+        <param name="Append" value="false" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSSZ} (%t) %c [%p] %m%n" />
+        </layout>
+    </appender>
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out" />
+        <param name="Encoding" value="UTF-8" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="LOG: %d{yyyy-MM-dd HH:mm:ss.SSSZ} (%t) %c [%p] %m%n" />
+        </layout>
+    </appender>
+
+    <logger name="com.amazonaws.auth.AWS4Signer">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazonaws.http">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazonaws.request">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="org.apache.http">
+        <level value="INFO" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.metrics.CWPublisherRunnable">
+        <level value="WARN" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.FirehoseParser">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.SourceFileTracker">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.FileTailer">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.PublishingQueue">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.AsyncPublisherService">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.AsyncPublisher">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.SimplePublisher">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.checkpoints.SQLiteFileCheckpointStore">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.checkpoints.Checkpointer">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.testing.TestableFileTailer">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.testing.RecordGenerator">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.testing.RotatingFileGenerator">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="com.amazon.kinesis.streaming.agent.tailing.testing.FileSender">
+        <level value="DEBUG" />
+    </logger>
+
+    <root>
+        <level value="DEBUG" />
+        <appender-ref ref="FILE" />
+    </root>
+</log4j:configuration>

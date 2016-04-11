@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -261,7 +261,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
     protected synchronized int processRecordsInCurrentFile() throws IOException {
         isNewFile = false;
         // See if there's a pending record from the previous run, and start
-        // with it, otherwise, read a new recod from the parser.
+        // with it, otherwise, read a new record from the parser.
         R record = pendingRecord == null ? parser.readRecord() : pendingRecord;
         pendingRecord = null;
         int processed = 0;

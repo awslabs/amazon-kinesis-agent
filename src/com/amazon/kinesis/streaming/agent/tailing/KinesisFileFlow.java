@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -14,7 +14,6 @@
 package com.amazon.kinesis.streaming.agent.tailing;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -23,10 +22,8 @@ import lombok.ToString;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
-import com.amazon.kinesis.streaming.agent.config.ConfigurationException;
 import com.amazon.kinesis.streaming.agent.tailing.KinesisConstants.PartitionKeyOption;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
-import com.google.common.base.Strings;
 import com.google.common.collect.Range;
 /**
  * An implementation of a {@link FileFlow} where the destination is a kinesis stream.

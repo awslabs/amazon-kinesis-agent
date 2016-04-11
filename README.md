@@ -98,6 +98,11 @@ java -cp CLASSPATH "com.amazon.kinesis.streaming.agent.Agent"
 **CLASSPATH** is the classpath to your dependencies and the target JAR file that you built from the step above.
 
 ## Release Notes
+### Release 1.1 (April 11, 2016)
+* **Pre-process data before sending it to destinations** &mdash; Amazon Kinesis Agent now supports to pre-process the records parsed from monitored files before sending them to your streams. The processing capability can be enabled by adding dataProcessingOptions configuration to file flow. There are three available options for now: SINGLELINE, CSVTOJSON, and LOGTOJSON. For more information, see [Writing to Amazon Kinesis with Agents][kinesis-stream-agent-guide] and [Writing to Delivery Streams with Agents][kinesis-firehose-agent-guide].
+* **Ingore tailing compressed files** &mdash; Compressed file extensions, e.g. .gz, .bz2, and .zip, are ignored for tailing.
+* **Force to kill the program on out-of-memory error** &mdash; The program will be killed when it's out of memory.
+
 ### Release 1.0 (October 7, 2015)
 * This is the first release.
 
