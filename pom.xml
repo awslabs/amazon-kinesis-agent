@@ -38,6 +38,11 @@
           <version>${aws-java-sdk.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-kinesis-agent-extension</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-cloudwatch</artifactId>
           <version>${aws-java-sdk.version}</version>
@@ -157,6 +162,12 @@
           <artifactId>lombok</artifactId>
           <version>1.16.6</version>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.9.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <developers>
@@ -206,6 +217,40 @@
             </execution>
           </executions>
         </plugin>
+          <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>build-helper-maven-plugin</artifactId>
+              <version>1.10</version>
+              <executions>
+                  <execution>
+                      <id>add-test-source</id>
+                      <phase>generate-test-sources</phase>
+                      <goals>
+                          <goal>add-test-source</goal>
+                      </goals>
+                      <configuration>
+                          <sources>
+                              <source>test/java</source>
+                          </sources>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>add-test-resource</id>
+                      <phase>generate-test-resources</phase>
+                      <goals>
+                          <goal>add-test-resource</goal>
+                      </goals>
+                      <configuration>
+                          <resources>
+                              <resource>
+                                  <directory>test/resources</directory>
+                                  <targetPath>resources</targetPath>
+                              </resource>
+                          </resources>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
       </plugins>
     </build>
 

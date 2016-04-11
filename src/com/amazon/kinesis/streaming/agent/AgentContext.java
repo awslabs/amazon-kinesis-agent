@@ -85,8 +85,9 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
         if (containsKey("flows")) {
             for (Configuration c : readList("flows", Configuration.class)) {
                 FileFlow<?> flow = fileFlowFactory.getFileFlow(this, c);
-                if (flows.containsKey(flow.getId()))
+                if (flows.containsKey(flow.getId())) {
                     throw new ConfigurationException("Duplicate flow: " + flow.getId());
+                }
                 flows.put(flow.getId(), flow);
             }
         }
