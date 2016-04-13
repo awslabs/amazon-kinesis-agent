@@ -117,6 +117,8 @@ public class FirehoseSender extends AbstractSender<FirehoseRecord> {
                         sentRecords.add(index);
                         totalBytesSent += record.getData().limit();
                     } else {
+                        logger.error("{}: Record returned error code {}: {}", flow.getId(), responseEntry.getErrorCode(),
+                                responseEntry.getErrorMessage());
                         logger.trace("{}:{} Record {} returned error code {}: {}", flow.getId(), buffer, index, responseEntry.getErrorCode(),
                                 responseEntry.getErrorMessage());
                         errors.add(responseEntry.getErrorCode());

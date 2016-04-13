@@ -47,7 +47,7 @@ download_dependencies() {
   install -d ${dependencies_dir}
   
   echo "Downloading dependencies ..."
-  aws_java_sdk_version="1.10.67"
+  aws_java_sdk_version="1.10.26"
   
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
@@ -120,7 +120,7 @@ do_uninstall () {
 
 do_build () {
   download_dependencies
-  
+
   ant || fail "Failed to build the Java project"
 }
 

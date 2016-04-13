@@ -203,7 +203,7 @@ class SimplePublisher<R extends IRecord> implements IHeartbeatProvider {
         sendError.incrementAndGet();
         // Retry the buffer if it's a runtime exception
         if(isRetriableSendException(t)) {
-            logger.debug("{}:{} Retriable send error ({}: {}). Will retry.", name(), buffer, t.getClass().getName(), t.getMessage());
+            logger.error("{}:{} Retriable send error ({}: {}). Will retry.", name(), buffer, t.getClass().getName(), t.getMessage());
             return queueBufferForRetry(buffer);
         } else {
             logger.error("{}:{} Non-retriable send error. Will NOT retry.", name(), buffer, t);

@@ -11,11 +11,11 @@ LIB_DIR="/usr/share/aws-kinesis-agent/lib"
 CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
 
 JAVACMD="java"
+OOME_ARGS="-XX:OnOutOfMemoryError=\"/bin/kill -9 %p\""
 JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
 
 MAIN_CLASS="com.amazon.kinesis.streaming.agent.Agent"
 
-exec $JAVACMD $JVM_ARGS \
+exec $JAVACMD $JVM_ARGS "$OOME_ARGS" \
   -cp "$CLASSPATH" \
   $MAIN_CLASS "$@"
-

@@ -472,7 +472,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
             record = buildRecord(currentBufferFile, convertData(data), toChannelOffset(offset));
         } catch (DataConversionException e) {
             totalDataProcessingErrors.incrementAndGet();
-            logger.warn("Cannot process input data: " + e.getMessage());
+            logger.warn("Cannot process input data: " + e.getMessage() + ", falling back to raw data.");
             record = buildRecord(currentBufferFile, data, toChannelOffset(offset));
         } finally {
             totalRecordsParsed.incrementAndGet();
