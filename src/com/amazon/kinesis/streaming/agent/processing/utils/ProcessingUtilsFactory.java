@@ -50,7 +50,8 @@ public class ProcessingUtilsFactory {
         COMMONAPACHELOG,
         COMBINEDAPACHELOG,
         APACHEERRORLOG,
-        SYSLOG
+        SYSLOG,
+        RFC3339SYSLOG
     }
     
     public static enum JSONFormat {
@@ -103,6 +104,8 @@ public class ProcessingUtilsFactory {
             case APACHEERRORLOG:
                 return new ApacheLogParser(format, matchPattern, customFields);
             case SYSLOG:
+                return new SysLogParser(format, matchPattern, customFields);
+            case RFC3339SYSLOG:
                 return new SysLogParser(format, matchPattern, customFields);
             default:
                 throw new ConfigurationException("Log format " + format.name() + " is not accepted");
