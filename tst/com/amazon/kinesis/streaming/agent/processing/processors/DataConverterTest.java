@@ -195,12 +195,15 @@ public class DataConverterTest {
         final String expectedLogWithoutPID = "{\"timestamp\":\"Mar 12 12:01:02\",\"hostname\":\"server4\",\"program\":\"snort\",\"processid\":null,\"message\":\"Ports to decode telnet on: 21 23 25 119\"}\n";
         verifyDataConversion(converter, logWithoutPID.getBytes(), expectedLogWithoutPID.getBytes()); 
     }
-    
-    private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {
-        ByteBuffer data = ByteBuffer.wrap(dataBin);
-        ByteBuffer res = converter.convert(data);
-        byte[] resBin = new byte[res.remaining()];
-        res.get(resBin);
-        Assert.assertEquals(resBin, expectedBin);
+
+    private void verifyDataConversion(
+            final IDataConverter converter,
+            final byte[] bytes,
+            final byte[] expected) throws Exception {
+        final ByteBuffer data = ByteBuffer.wrap(bytes);
+        final ByteBuffer result = converter.convert(data);
+        final byte[] actual = new byte[result.remaining()];
+        result.get(actual);
+        Assert.assertTrue(Arrays.equals(actual, expected));
     }
 }

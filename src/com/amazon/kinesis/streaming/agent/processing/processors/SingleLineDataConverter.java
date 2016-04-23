@@ -11,43 +11,59 @@
  * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
  * See the License for the specific language governing permissions and limitations under the License.
  */
+
 package com.amazon.kinesis.streaming.agent.processing.processors;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
+import com.google.common.base.Splitter;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Replace the newline with a whitespace
- * Remove leading and trailing spaces for each line
- * 
- * Configuration looks like:
- * 
- * { "optionName": "SINGLELINE" }
- * 
- * @author chaocheq
+ * An implementation of {@link IDataConverter} that converts the data specified
+ * into a single line from (possibly) a multi-line representation and replaces
+ * the newline character with a whitespace. All leading and trailing spaces for
+ * a given line are removed.
+ * <p>
+ * This converter can be configured by setting {@code optionName} to {@code SINGLELINE}
+ * when configuring the agent. Example:
+ * <pre> {@code
+ *     ...
+ *     "dataProcessingOptions": [
+ *       {
+ *         "optionName": "SINGLELINE"
+ *       }
+ *     ]
+ *     ...
+ * } </pre>
  *
+ * @author chaocheq
+ * @author Willy Lulciuc
  */
 public class SingleLineDataConverter implements IDataConverter {
-    
+
+    /** Splits each line from the data specified by the newline character. */
+    private static final Splitter NEW_LINE_SPLITTER = Splitter.on(NEW_LINE).omitEmptyStrings().trimResults();
+
     @Override
     public ByteBuffer convert(ByteBuffer data) throws DataConversionException {
-        String dataStr = ByteBuffers.toString(data, StandardCharsets.UTF_8);
-        String[] lines = dataStr.split(NEW_LINE);
-        for (int i = 0; i < lines.length; i++) {
-            // FIXME: Shall we trim each line?
-            lines[i] = lines[i].trim();
+        String dataAsString = ByteBuffers.toString(checkNotNull(data), StandardCharsets.UTF_8);
+        StringBuilder builder = new StringBuilder();
+        for (String line : NEW_LINE_SPLITTER.split(dataAsString)) {
+            builder.append(line);
         }
-        
-        String dataRes = StringUtils.join(lines) + NEW_LINE;
-        return ByteBuffer.wrap(dataRes.getBytes(StandardCharsets.UTF_8));
+        // We want to append the newline character at the end of the string, using the
+        // character as a delimiter.
+        builder.append(NEW_LINE);
+        String dataAsSingleLine = builder.toString();
+        return ByteBuffer.wrap(dataAsSingleLine.getBytes(StandardCharsets.UTF_8));
     }
-    
+
     @Override
     public String toString() {
         return getClass().getSimpleName();
