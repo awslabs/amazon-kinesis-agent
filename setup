@@ -1,19 +1,45 @@
 #! /usr/bin/env bash
 
+# If we have an error, bail out!
+set -e
+
+# If we're debugging, be really loudly verbose
+[[ ! -z $DEBUG ]] && set -x
+
+# Attempt to load up the /etc/lsb-release file to determine our OS. If none is
+# found, we default our settings to RHEL/Amazon Linux as the original behavior
+# of this script intended.
+dist=RedHat
+[[ -f /etc/lsb-release ]] && dist=Ubuntu
+
+# Tell the user what OS we detected
+echo "Detected OS Distro: ${dist}"
+
 # Make sure only root can run our script
 if [ "$(id -u)" != "0" ]; then
  echo "This script must be run as root" >&2
  exit 1
 fi
 
+# Based on the OS, determine which commands we'll be calling to install/manage
+# certain things
+case "$dist" in
+  Ubuntu)
+    install_package="apt-get install -y"
+    init_dir=/etc/init.d
+    sysconfig_dir=/etc/defaults ;;
+  *)
+    install_package="yum install -y"
+    init_dir=/etc/rc.d/init.d
+    sysconfig_dir=/etc/sysconfig ;;
+esac
+
 daemon_name=aws-kinesis-agent
 agent_user_name=aws-kinesis-agent-user
 bin_dir=/usr/bin
 cron_dir=/etc/cron.d
-sysconfig_dir=/etc/sysconfig
 config_dir=/etc/aws-kinesis
 jar_dir=/usr/share/${daemon_name}/lib
-init_dir=/etc/rc.d/init.d
 dependencies_dir=./dependencies
 log_dir=/var/log/${daemon_name}
 state_dir=/var/run/${daemon_name}
@@ -39,11 +65,25 @@ download_jar() {
   prefix="http://search.maven.org/remotecontent?filepath="
   path=${1//.//}
   jar_name=$artifact_id-$version.jar
+  tmp_dest=$(mktemp -u)
+  jar_dest=$dependencies_dir/$jar_name
   url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
-  [[ -f ${dependencies_dir}/${jar_name} ]] || wget -P ${dependencies_dir} $url
+
+  # file exists? then don't download it!
+  [[ -f ${jar_dest} ]] && return
+
+  # download the file to a temp location, then if move it here if successful
+  echo "Downloading $jar_name ($url)..."
+  wget -q -P ${dependencies_dir} $url -O ${tmp_dest} && \
+    mv ${tmp_dest} ${jar_dest}
+
+  # Purge our temp file regardless of the status here
+  rm -f ${tmp_dest}
 }
 
 download_dependencies() {
+  which ant > /dev/null || $install_package ant
+
   install -d ${dependencies_dir}
   
   echo "Downloading dependencies ..."
@@ -91,11 +131,10 @@ do_uninstall () {
   fi
 
   # remove the service from system services
-  chkconfig --list $daemon_name > /dev/null 2>&1
-  if [ $? == 0 ]; then
-    echo "Removing $daemon_name from system services..."
-    sudo chkconfig --del $daemon_name
-  fi
+  case "$dist" in
+    Ubuntu) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
+    *) chkconfig --del $daemon_name > /dev/null 2>&1 || true ;;
+  esac
   
   # remove the jars and config files
   rm -rf ${state_dir}
@@ -105,8 +144,7 @@ do_uninstall () {
   rm -f ${bin_dir}/start-${daemon_name}
   
   # remove the user for starting the agent
-  user_id=$(id -u $agent_user_name > /dev/null 2>&1)
-  [[ $? == 0 ]] && userdel $agent_user_name
+  userdel $agent_user_name > /dev/null || true
   
   # remove sysconfig
   rm -f ${sysconfig_dir}/${daemon_name}
@@ -142,13 +180,13 @@ do_install () {
   install -m755 ./bin/${daemon_name}-babysit ${bin_dir}
   install -m644 ./${dependencies_dir}/* ${jar_dir}
   install -m644 ./ant_build/lib/* ${jar_dir}
-  install -m755 ./bin/${daemon_name} ${init_dir}
+  install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
   
   # add a user for starting the agent
-  user_id=$(id -u $agent_user_name > /dev/null 2>&1)
-  [[ $? == 0 ]] || useradd -c "Streaming Data Agent" -r $agent_user_name
+  id -u $agent_user_name > /dev/null 2>&1 || \
+    useradd -c "Streaming Data Agent" -r $agent_user_name
   usermod -L $agent_user_name
   
   # change the owner of log files and checkpoint files to the user
@@ -161,7 +199,10 @@ do_install () {
   echo "Configuration details:"
   cat "${config_file}"
   
-  /sbin/chkconfig --add $daemon_name
+  case "$dist" in
+    Ubuntu) update-rc.d $daemon_name defaults ;;
+    *) chkconfig --add $daemon_name ;;
+  esac
   
   echo "Amazon Kinesis Agent is installed successfully."
   echo "To start the $daemon_name service, run:"

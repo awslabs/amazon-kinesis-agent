@@ -24,6 +24,8 @@ The **Amazon Kinesis Agent** is a stand-alone Java software application that off
 After you've downloaded the code from GitHub, you can install the Amazon Kinesis Agent with the following command:
 
 ```sh
+# Optionally, you can set DEBUG=1 in your environment to enable massively
+# verbose output of the script
 sudo ./setup --install
 ```
 
@@ -74,7 +76,13 @@ sudo ./setup --uninstall
 
 ## Building from Source
 
-The installation done by the setup script is only tested on **Red Hat Enterprise Linux** version 7 or later and **Amazon Linux AMI** version 2015.09 or later. For other distributions or platforms, you can build the Java project with the following command:
+The installation done by the setup script is only tested on the following OS Disributions:
+
+  * **Red Hat Enterprise Linux** version 7 or later
+  * **Amazon Linux AMI** version 2015.09 or later
+  * **Ubuntu Linux** version 12.04 or later
+
+For other distributions or platforms, you can build the Java project with the following command:
 
 ```sh
 sudo ./setup --build
