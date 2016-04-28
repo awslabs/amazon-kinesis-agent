@@ -13,8 +13,8 @@
     <property name="build.dependencies" location="dependencies" />
 
     <path id="classpath">
-        <fileset dir="/usr/share/java" includes="**/*.jar" />
         <fileset dir="${build.dependencies}" includes="**/*.jar" />
+        <fileset dir="/usr/share/java" includes="**/*.jar" />
     </path>
 
     <target name="get-java-version">
