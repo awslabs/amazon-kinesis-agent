@@ -1,0 +1,16 @@
+language: java
+sudo: required
+install:
+  - true
+before_deploy:
+  - mvn clean
+  - sudo ./setup --build
+  - tar -zcvf /tmp/binary.tgz .
+deploy:
+  - provider: releases
+    file: /tmp/binary.tgz
+    api_key: "$OAUTH_TOKEN"
+    skip_cleanup: true
+    on:
+      tags: true
+      all_branches: true
