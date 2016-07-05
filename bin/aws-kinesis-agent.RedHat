@@ -42,7 +42,7 @@ AGENT_USER=aws-kinesis-agent-user
 PIDFILE=/var/run/$DAEMON_NAME.pid
 STATE_HOME=/var/run/$DAEMON_NAME
 LOG_DIR=/var/log/$DAEMON_NAME
-[[ -d $STATE_HOME ]] || mkdir -p $STATE_HOME
+[[ -d $STATE_HOME ]] || install -o $AGENT_USER -g $AGENT_USER -d $STATE_HOME
 MUTEXFILE=$STATE_HOME/mutex
 SHUTDOWN_TIME=11   #10 second default value in AgentConfiguration.java, +1 second buffer
 LOGLEVEL=${LOGLEVEL:-INFO}
