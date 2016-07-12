@@ -4,7 +4,7 @@
 
 DAEMON_NAME=aws-kinesis-agent
 PIDFILE=/var/run/$DAEMON_NAME.pid
-SERVICE="/sbin/service $DAEMON_NAME"
+SERVICE="$(which service) $DAEMON_NAME"
 
 function get_agent_pid() {
   echo $(ps --ppid $(cat $PIDFILE 2>/dev/null) ho pid 2>/dev/null)
