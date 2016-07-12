@@ -150,7 +150,7 @@ do_uninstall () {
   rm -f ${sysconfig_dir}/${daemon_name}
   
   # remove cron job	
-  rm -f ${bin_dir}/${daemon_name}-babysit
+  rm -f ${bin_dir}/${daemon_name}-babysit  # deprecated now
   rm -f ${cron_dir}/${daemon_name}
 
   return 0
@@ -177,7 +177,6 @@ do_install () {
   install -d ${log_dir}
   install -d ${state_dir}
   install -m755 ./bin/start-${daemon_name} ${bin_dir}
-  install -m755 ./bin/${daemon_name}-babysit ${bin_dir}
   install -m644 ./${dependencies_dir}/* ${jar_dir}
   install -m644 ./ant_build/lib/* ${jar_dir}
   install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
