@@ -11,10 +11,12 @@
 #                    as a daemon.
 ### END INIT INFO
 
-# get init functions: status()
-[ -e /lib/lsb/init-functions ] && . /lib/lsb/init-functions
+set -e
 
-#set -x
+# get init functions: status()
+. /lib/lsb/init-functions
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON_NAME=aws-kinesis-agent
 NAME=$DAEMON_NAME  # ubuntu compatibility
 AGENT_USER=aws-kinesis-agent-user
@@ -94,6 +96,7 @@ case "$command" in
     ;;
   status)
     status_of_proc -p $PIDFILE $DAEMON_NAME $NAME
+    exit $?
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|status}"
