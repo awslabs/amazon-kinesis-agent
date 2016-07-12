@@ -4,7 +4,17 @@
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
 DAEMON_NAME=aws-kinesis-agent
+PIDFILE=/var/run/$DAEMON_NAME.pid
 SERVICE="service $DAEMON_NAME"
+
+# If using systemd and the service is disabled skip a babysit check.
+#
+# We don't do this for upstart/sysvinit systems as a `restart` will fail immediately
+# when trying to a stop a service that isn't registred to be running.
+# Additionally checking if a service is enabled is not straightforward as in systemd.
+if [ -d /run/systemd/system ]; then
+   systemctl is-enabled "${DAEMON_NAME}.service" >/dev/null 2>&1 || exit 0
+fi
 
 function start_agent() {
   $SERVICE restart || exit 1
@@ -12,10 +22,11 @@ function start_agent() {
   $SERVICE status >/dev/null 2>&1 || exit 1
 }
 
-$SERVICE status >/dev/null 2>&1
-status=$?
+# Check if PID file exists.
+# If it does not, it means either the agent was never started or it was stopped by the user.
+[[ -f $PIDFILE ]] || exit 0
 
-if [ "$status" -eq "1" -o "$status" -eq "2" ]; then
+if [ "$status" -eq "1" -o "$status" -eq "2" -o "$status" -eq "3" ]; then
   start_agent
 fi
 

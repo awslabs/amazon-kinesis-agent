@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
     <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
         <errorHandler class="com.amazon.kinesis.streaming.agent.CustomLog4jFallbackErrorHandler">
             <root-ref />
             <appender-ref ref="FALLBACK" />
         </errorHandler>
-        <param name="File" value="/var/log/agent.log" />
+        <param name="File" value="/var/log/aws-kinesis-agent/aws-kinesis-agent.log" />
         <param name="Encoding" value="UTF-8" />
         <param name="MaxBackupIndex" value="5" />
         <param name="MaxFileSize" value="10485760" />

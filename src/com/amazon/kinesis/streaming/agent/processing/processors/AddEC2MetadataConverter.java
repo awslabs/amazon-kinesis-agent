@@ -40,7 +40,7 @@ import com.amazonaws.services.ec2.model.Filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
-import com.amazon.kinesis.streaming.agent.Logging;
+import org.slf4j.LoggerFactory;
 
 /**
  * Parse the log entries from log file, and convert the log entries into JSON.
@@ -56,7 +56,7 @@ import com.amazon.kinesis.streaming.agent.Logging;
  */
 public class AddEC2MetadataConverter implements IDataConverter {
 
-  private static final Logger LOGGER = Logging.getLogger(AddEC2MetadataConverter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AddEC2MetadataConverter.class);
   private ILogParser logParser;
   private IJSONPrinter jsonProducer;
   private Map<String, Object> metadata;

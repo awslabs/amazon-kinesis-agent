@@ -14,8 +14,8 @@
 package com.amazon.kinesis.streaming.agent.metrics;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.StatisticSet;
@@ -24,7 +24,7 @@ import com.amazonaws.services.cloudwatch.model.StatisticSet;
  * An AccumulatingMetricsScope that outputs via log4j.
  */
 public class LogMetricsScope extends AccumulatingMetricsScope {
-    public static final Logger LOGGER = Logging.getLogger(LogMetricsScope.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(LogMetricsScope.class);
 
     public LogMetricsScope() {
         super();

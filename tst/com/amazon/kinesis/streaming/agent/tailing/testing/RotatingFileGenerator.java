@@ -7,11 +7,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import org.slf4j.LoggerFactory;
 
 public class RotatingFileGenerator extends AbstractScheduledService {
-    private static final Logger LOGGER = Logging.getLogger(RotatingFileGenerator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileGenerator.class);
     private final FileRotator rotator;
     private final double recordsPerSecond;
     private final long wakeUpIntervalMillis;

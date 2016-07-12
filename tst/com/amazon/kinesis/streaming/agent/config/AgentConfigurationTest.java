@@ -46,10 +46,6 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.socketTimeoutMillis(), ClientConfiguration.DEFAULT_SOCKET_TIMEOUT);
         Assert.assertEquals(config.useHttpGzip(), ClientConfiguration.DEFAULT_USE_GZIP);
         Assert.assertEquals(config.useTcpKeepAlive(), ClientConfiguration.DEFAULT_TCP_KEEP_ALIVE);
-        Assert.assertNull(config.logFile());
-        Assert.assertNull(config.logLevel());
-        Assert.assertEquals(config.logMaxBackupIndex(), -1);
-        Assert.assertEquals(config.logMaxFileSize(), -1);
     }
 
     @Test
@@ -73,10 +69,6 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.socketTimeoutMillis(), 1234);
         Assert.assertEquals(config.useHttpGzip(), true);
         Assert.assertEquals(config.useTcpKeepAlive(), true);
-        Assert.assertEquals(config.logLevel(), "ERROR");
-        Assert.assertEquals(config.logFile(), Paths.get("/tmp/agent-test.log"));
-        Assert.assertEquals(config.logMaxBackupIndex(), 12);
-        Assert.assertEquals(config.logMaxFileSize(), 1234);
     }
 
     @Test
