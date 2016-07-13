@@ -151,7 +151,6 @@ do_stop () {
 do_status () {
   status -p $PIDFILE $DAEMON_NAME
   RETVAL=$?
-  exit $RETVAL
 }
 
 do_restart () {
