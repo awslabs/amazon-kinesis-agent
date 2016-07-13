@@ -119,7 +119,7 @@ LIB_DIR=$(cd "$BIN_DIR"/../share/$DAEMON_NAME/lib && pwd)
 _debug_msg "BIN_DIR=${BIN_DIR}"
 _debug_msg "LIB_DIR=${LIB_DIR}"
 _debug_msg "PWD=${PWD}"
-CLASSPATH="$JAVA_DIR"/*:"$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
+CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"${JAVA_DIR}/*":"${CLASSPATH}"
 _debug_msg CLASSPATH=$CLASSPATH
 set +e
 
