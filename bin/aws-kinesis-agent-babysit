@@ -8,7 +8,7 @@ PIDFILE=/var/run/$DAEMON_NAME.pid
 SERVICE="service $DAEMON_NAME"
 
 function get_agent_pid() {
-  echo $(ps --ppid $(cat $PIDFILE 2>/dev/null) ho pid 2>/dev/null)
+  echo $(ps -p $(cat $PIDFILE 2>/dev/null) ho pid 2>/dev/null)
 }
 
 function start_agent() {
