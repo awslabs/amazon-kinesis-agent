@@ -17,10 +17,10 @@ function start_agent() {
   [[ -n $(get_agent_pid) ]] || exit 1
 }
 
-# Check if PID file exists.
+# Check if PID file exists. 
 # If it does not, it means either the agent was never started or it was stopped by the user.
 [[ -f $PIDFILE ]] || exit 0
-
+  
 # Check if the child Java process is alive. If not, we should start
 [[ -n $(get_agent_pid) ]] || start_agent
 

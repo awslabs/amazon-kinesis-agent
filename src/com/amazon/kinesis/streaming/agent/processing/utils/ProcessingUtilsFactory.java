@@ -104,7 +104,6 @@ public class ProcessingUtilsFactory {
             case APACHEERRORLOG:
                 return new ApacheLogParser(format, matchPattern, customFields);
             case SYSLOG:
-                return new SysLogParser(format, matchPattern, customFields);
             case RFC3339SYSLOG:
                 return new SysLogParser(format, matchPattern, customFields);
             default:

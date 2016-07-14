@@ -68,7 +68,7 @@ download_jar() {
   tmp_dest=$(mktemp -u)
   jar_dest=$dependencies_dir/$jar_name
   url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
-
+  
   # file exists? then don't download it!
   [[ -f ${jar_dest} ]] && return
 
@@ -83,7 +83,7 @@ download_jar() {
 
 download_dependencies() {
   which ant > /dev/null || $install_package ant
-
+  
   install -d ${dependencies_dir}
   
   echo "Downloading dependencies ..."
@@ -131,6 +131,7 @@ do_uninstall () {
   fi
 
   # remove the service from system services
+  echo "Removing $daemon_name from system services..."
   case "$dist" in
     Ubuntu) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
     *) chkconfig --del $daemon_name > /dev/null 2>&1 || true ;;
@@ -158,7 +159,7 @@ do_uninstall () {
 
 do_build () {
   download_dependencies
-
+  
   ant || fail "Failed to build the Java project"
 }
 
@@ -186,7 +187,7 @@ do_install () {
   
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \
-    useradd -c "Streaming Data Agent" -r $agent_user_name
+  useradd -c "Streaming Data Agent" -r $agent_user_name
   usermod -L $agent_user_name
   
   # change the owner of log files and checkpoint files to the user

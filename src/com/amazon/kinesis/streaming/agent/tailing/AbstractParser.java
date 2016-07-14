@@ -74,6 +74,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
     private final AtomicLong totalRecordsLargerThanBuffer = new AtomicLong();
     private final AtomicLong totalUndhandledErrors = new AtomicLong();
     private final AtomicLong totalRecordsProcessed = new AtomicLong();
+    private final AtomicLong totalRecordsSkipped = new AtomicLong();
     private final AtomicLong totalDataProcessingErrors = new AtomicLong();
 
     public AbstractParser(FileFlow<R> flow) {
@@ -488,6 +489,9 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         ByteBuffer result = getDataConverter().convert(data);
         if (result != null) {
             totalRecordsProcessed.incrementAndGet();
+        } else {
+            totalRecordsSkipped.incrementAndGet();
+            logger.warn("1 record parsed but skipped for processing and delivering");
         }
         return result;
     }
@@ -520,6 +524,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
             put(className + ".TotalRecordsLargerThanBuffer", totalRecordsLargerThanBuffer);
             put(className + ".TotalUnhandledErrors", totalUndhandledErrors);
             put(className + ".TotalRecordsProcessed", totalRecordsProcessed);
+            put(className + ".TotalRecordsSkipped", totalRecordsSkipped);
             put(className + ".TotalDataProcessingErrors", totalDataProcessingErrors);
         }};
     }

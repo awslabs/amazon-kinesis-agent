@@ -31,6 +31,8 @@ public class Metrics implements IMetricsContext {
     public static final Pattern FILE_TAILER_FILES_BEHIND_METRIC = Pattern.compile("^.*FileTailer.FilesBehind$");
     public static final Pattern FILE_TAILER_BYTES_BEHIND_METRIC = Pattern.compile("^.*FileTailer.BytesBehind$");
     public static final Pattern PARSER_TOTAL_RECORDS_PARSED_METRIC = Pattern.compile("^.*Parser.TotalRecordsParsed$");
+    public static final Pattern PARSER_TOTAL_RECORDS_PROCESSED_METRIC = Pattern.compile("^.*Parser.TotalRecordsProcessed$");
+    public static final Pattern PARSER_TOTAL_RECORDS_SKIPPED_METRIC = Pattern.compile("^.*Parser.TotalRecordsSkipped$");
 
     public static final String DESTINATION_DIMENSION = "Destination";
 

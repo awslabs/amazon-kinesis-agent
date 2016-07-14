@@ -408,9 +408,11 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             int filesBehind = Metrics.getMetric(metrics, Metrics.FILE_TAILER_FILES_BEHIND_METRIC, 0);
             long bytesConsumed = Metrics.getMetric(metrics, Metrics.PARSER_TOTAL_BYTES_CONSUMED_METRIC, zero).get();
             long recordsParsed = Metrics.getMetric(metrics, Metrics.PARSER_TOTAL_RECORDS_PARSED_METRIC, zero).get();
+            long recordsProcessed = Metrics.getMetric(metrics, Metrics.PARSER_TOTAL_RECORDS_PROCESSED_METRIC, zero).get();
+            long recordsSkipped = Metrics.getMetric(metrics, Metrics.PARSER_TOTAL_RECORDS_SKIPPED_METRIC, zero).get();
             long recordsSent = Metrics.getMetric(metrics, Metrics.SENDER_TOTAL_RECORDS_SENT_METRIC, zero).get();
-            LOGGER.info("{}: Tailer Progress: Tailer has parsed {} records ({} bytes), and has successfully sent {} records to destination.",
-                    serviceName(), recordsParsed, bytesConsumed, recordsSent);
+            LOGGER.info("{}: Tailer Progress: Tailer has parsed {} records ({} bytes), transformed {} records, skipped {} records, and has successfully sent {} records to destination.",
+                    serviceName(), recordsParsed, bytesConsumed, recordsProcessed, recordsSkipped, recordsSent);
             String msg = String.format("%s: Tailer is %02f MB (%d bytes) behind.", serviceName(),
                     bytesBehind / 1024 / 1024.0, bytesBehind);
             if (filesBehind > 0) {

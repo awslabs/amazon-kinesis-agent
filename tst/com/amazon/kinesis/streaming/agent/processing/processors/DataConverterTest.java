@@ -36,6 +36,7 @@ public class DataConverterTest {
                                "    },\n" +
                                "   \"e\": \"f\",\n" +
                                "   \"g\": 2\n" +
+                               "     " +
                                "}\n";
         final String expectedStr = "{\"a\": {\"b\": 1,\"c\": null,\"d\": true},\"e\": \"f\",\"g\": 2}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 

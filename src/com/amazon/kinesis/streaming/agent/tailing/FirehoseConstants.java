@@ -19,7 +19,7 @@ public final class FirehoseConstants extends Constants {
     public static final String DESTINATION_KEY = "deliveryStream";
     
     public static final int PER_RECORD_OVERHEAD_BYTES = 0;
-    public static final int MAX_RECORD_SIZE_BYTES = 40_960;
+    public static final int MAX_RECORD_SIZE_BYTES = 1000 * 1024;
     public static final int PER_BUFFER_OVERHEAD_BYTES = 0;
     public static final int MAX_BATCH_PUT_SIZE_RECORDS = 500;
     public static final int MAX_BATCH_PUT_SIZE_BYTES = 4 * 1024 * 1024;

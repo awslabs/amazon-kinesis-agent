@@ -45,8 +45,8 @@ LOG_DIR=/var/log/$DAEMON_NAME
 [[ -d $STATE_HOME ]] || install -o $AGENT_USER -g $AGENT_USER -d $STATE_HOME
 MUTEXFILE=$STATE_HOME/mutex
 SHUTDOWN_TIME=11   #10 second default value in AgentConfiguration.java, +1 second buffer
-LOGLEVEL=${LOGLEVEL:-INFO}
-ARGS=${ARGS:-}
+AGENT_LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+AGENT_ARGS=${AGENT_ARGS:-}
 
 INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
 
@@ -70,7 +70,7 @@ do_start () {
   
   (
     flock -w 10 -x 9
-    DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $LOGLEVEL $ARGS $@" > $INITLOGFILE 2>&1 &
+    DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $AGENT_LOG_LEVEL $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 
     pid=$!
     echo $pid > $PIDFILE

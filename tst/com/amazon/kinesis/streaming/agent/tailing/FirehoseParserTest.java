@@ -8,7 +8,7 @@ import com.amazon.kinesis.streaming.agent.tailing.FirehoseParser;
 import com.amazon.kinesis.streaming.agent.tailing.FirehoseRecord;
 
 public class FirehoseParserTest extends AbstractParserTest<FirehoseParser, FirehoseRecord> {
-    private final static int BUNCH_OF_BYTES = 5 * 1024 * 1024;
+    private final static int BUNCH_OF_BYTES = 30 * 1024 * 1024;
     private final static int TEST_BUFFER_SIZE = BUNCH_OF_BYTES / 10;   // This guarantees that multiple buffers are needed to read the file
 
 	@Override

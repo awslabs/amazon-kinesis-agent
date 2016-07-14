@@ -27,6 +27,7 @@ import com.amazon.kinesis.streaming.agent.metrics.IMetricsScope;
 import com.amazon.kinesis.streaming.agent.metrics.Metrics;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.kinesis.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.kinesis.model.PutRecordsRequest;
 import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
 import com.amazonaws.services.kinesis.model.PutRecordsResult;
@@ -119,8 +120,6 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
                         sentRecords.add(index);
                         totalBytesSent += record.getData().limit();
                     } else {
-                        logger.error("{}: Record returned error code {}: {}", flow.getId(), responseEntry.getErrorCode(),
-                                responseEntry.getErrorMessage());
                         logger.trace("{}:{} Record {} returned error code {}: {}", flow.getId(), buffer, index, responseEntry.getErrorCode(),
                                 responseEntry.getErrorMessage());
                         errors.add(responseEntry.getErrorCode());
