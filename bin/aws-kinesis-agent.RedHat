@@ -68,8 +68,6 @@ do_start () {
   export AWS_SECRET_ACCESS_KEY
   export AWS_DEFAULT_REGION
   
-  (
-    flock -w 10 -x 9
     DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $AGENT_LOG_LEVEL $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 
     pid=$!
@@ -90,9 +88,7 @@ do_start () {
     # output status message
     [[ $RETVAL == 0 ]] && success "$DAEMON_NAME startup" || failure "$DAEMON_NAME startup"
 
-  ) 9>$MUTEXFILE
   RETVAL=$?
-  rm -f $MUTEXFILE
   return $RETVAL
 }
 
@@ -104,8 +100,6 @@ get_pids() {
 }
 
 do_stop () {
-  (
-    flock -w 10 -x 9
     ppids=`get_pids | awk '{print $1}'`
     if [[ $? == 0 ]]; then
       for pid in $ppids; do
@@ -142,15 +136,22 @@ do_stop () {
 
     # print status message
     [[ $RETVAL == 0 ]] && success "$DAEMON_NAME shutdown" || failure "$DAEMON_NAME shutdown"
-  ) 9>$MUTEXFILE
+
   RETVAL=$?
-  rm -f $MUTEXFILE
   return $RETVAL
+}
+
+function get_agent_pid() {
+  echo $(ps --ppid $(cat $PIDFILE 2>/dev/null) ho pid 2>/dev/null)
 }
 
 do_status () {
   status -p $PIDFILE $DAEMON_NAME
   RETVAL=$?
+
+  if [[ $RETVAL = 0 && -z $(get_agent_pid) ]]; then
+    RETVAL=1
+  fi
 }
 
 do_restart () {
@@ -191,6 +192,11 @@ do_install () {
   echo "$DAEMON_NAME log file will be found at: $LOG_DIR"
 }
 
+exec 200>$MUTEXFILE
+if ! flock -w 50 200; then
+  exit 1
+fi
+(
 command=$1
 shift
 case "$command" in
@@ -218,3 +224,4 @@ case "$command" in
     ;;
 esac
 exit $RETVAL
+) 200>&-
