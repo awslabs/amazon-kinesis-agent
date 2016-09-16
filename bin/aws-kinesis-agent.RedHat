@@ -68,25 +68,25 @@ do_start () {
   export AWS_SECRET_ACCESS_KEY
   export AWS_DEFAULT_REGION
   
-    DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $AGENT_LOG_LEVEL $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
+  DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $AGENT_LOG_LEVEL $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 
-    pid=$!
-    echo $pid > $PIDFILE
+  pid=$!
+  echo $pid > $PIDFILE
 
-    # wait a bit and make sure process still there
-    sleep 2
-    checkpid $pid
-    RETVAL=$?
-    # create the lock file
-    if [[ $RETVAL != 0 && -s $INITLOGFILE ]]; then
-      echo "Initialization logs can be found in $INITLOGFILE" >&2
-      cat $INITLOGFILE >&2
-    else
-      rm -f $INITLOGFILE
-    fi
+  # wait a bit and make sure process still there
+  sleep 2
+  checkpid $pid
+  RETVAL=$?
+  # create the lock file
+  if [[ $RETVAL != 0 && -s $INITLOGFILE ]]; then
+    echo "Initialization logs can be found in $INITLOGFILE" >&2
+    cat $INITLOGFILE >&2
+  else
+    rm -f $INITLOGFILE
+  fi
 
-    # output status message
-    [[ $RETVAL == 0 ]] && success "$DAEMON_NAME startup" || failure "$DAEMON_NAME startup"
+  # output status message
+  [[ $RETVAL == 0 ]] && success "$DAEMON_NAME startup" || failure "$DAEMON_NAME startup"
 
   RETVAL=$?
   return $RETVAL
@@ -100,42 +100,42 @@ get_pids() {
 }
 
 do_stop () {
+  ppids=`get_pids | awk '{print $1}'`
+  if [[ $? == 0 ]]; then
+    for pid in $ppids; do
+      pkill -TERM -P $pid > /dev/null 2>&1
+    done
+
+    i=0
+    while [[ $i -lt $SHUTDOWN_TIME ]] && get_pids > /dev/null; do
+      sleep 1
+      (( i = i + 1 ))
+    done
+
     ppids=`get_pids | awk '{print $1}'`
     if [[ $? == 0 ]]; then
       for pid in $ppids; do
-        pkill -TERM -P $pid > /dev/null 2>&1
+        pkill -KILL -P $pid > /dev/null 2>&1
       done
-
-      i=0
-      while [[ $i -lt $SHUTDOWN_TIME ]] && get_pids > /dev/null; do
-        sleep 1
-        (( i = i + 1 ))
-      done
-
-      ppids=`get_pids | awk '{print $1}'`
-      if [[ $? == 0 ]]; then
-        for pid in $ppids; do
-          pkill -KILL -P $pid > /dev/null 2>&1
-        done
-      fi
-      procList=`get_pids`
-      if [ $? != 0 ]; then
-        RETVAL=0
-      else
-        RETVAL=1
-      fi
     fi
-
-    # finally validate that the pid in the PIDFILE is gone
-    if [[ $RETVAL == 0 && -e $PIDFILE ]] && checkpid `cat $PIDFILE`; then
+    procList=`get_pids`
+    if [ $? != 0 ]; then
+      RETVAL=0
+    else
       RETVAL=1
     fi
+  fi
 
-    # all OK? cleanup
-    [[ $RETVAL == 0 ]] && rm -f $PIDFILE
+  # finally validate that the pid in the PIDFILE is gone
+  if [[ $RETVAL == 0 && -e $PIDFILE ]] && checkpid `cat $PIDFILE`; then
+    RETVAL=1
+  fi
 
-    # print status message
-    [[ $RETVAL == 0 ]] && success "$DAEMON_NAME shutdown" || failure "$DAEMON_NAME shutdown"
+  # all OK? cleanup
+  [[ $RETVAL == 0 ]] && rm -f $PIDFILE
+
+  # print status message
+  [[ $RETVAL == 0 ]] && success "$DAEMON_NAME shutdown" || failure "$DAEMON_NAME shutdown"
 
   RETVAL=$?
   return $RETVAL
@@ -147,8 +147,7 @@ function get_agent_pid() {
 
 do_status () {
   status -p $PIDFILE $DAEMON_NAME
-  RETVAL=$?
-
+  RETVAL=$?  
   if [[ $RETVAL = 0 && -z $(get_agent_pid) ]]; then
     RETVAL=1
   fi
@@ -197,31 +196,31 @@ if ! flock -w 50 200; then
   exit 1
 fi
 (
-command=$1
-shift
-case "$command" in
-  start)
-    do_start "$@"
-    ;;
-  stop)
-    do_stop
-    ;;
-  restart)
-    do_restart "$@"
-    ;;
-  condrestart)
-    do_condrestart "$@"
-    ;;
-  status)
-    do_status
-    ;;
-  install)
-    do_install
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart|condrestart|status|install}"
-    exit 1
-    ;;
-esac
-exit $RETVAL
+  command=$1
+  shift
+  case "$command" in
+    start)
+      do_start "$@"
+      ;;
+    stop)
+      do_stop
+      ;;
+    restart)
+      do_restart "$@"
+      ;;
+    condrestart)
+      do_condrestart "$@"
+      ;;
+    status)
+      do_status
+      ;;
+    install)
+      do_install
+      ;;
+    *)
+      echo "Usage: $0 {start|stop|restart|condrestart|status|install}"
+      exit 1
+      ;;
+  esac
+  exit $RETVAL
 ) 200>&-

@@ -16,6 +16,7 @@ package com.amazon.kinesis.streaming.agent.config;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.ClientConfiguration;
 
@@ -33,6 +34,8 @@ public class AgentConfiguration extends Configuration {
     static final boolean DEFAULT_LOG_EMIT_INTERNAL_METRICS = false;
     static final int DEFAULT_LOG_STATUS_REPORTING_PERIOD_SECONDS = 30;
     static final int DEFAULT_CHECKPOINT_TTL_DAYS = 7;
+    protected static final int DEFAULT_ASSUME_ROLE_DURATION_SECONDS = 
+    		(int) TimeUnit.HOURS.toSeconds(1);
 
     // NOTE: If changing the default make sure to change SHUTDOWN_TIME variable in `bin/aws-kinesis-agent` as well...
     static final long DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 10_000L;
@@ -40,6 +43,9 @@ public class AgentConfiguration extends Configuration {
     private static final String CW_DEFAULT_NAMESPACE = "AWSKinesisAgent";
     public static final String CONFIG_ACCESS_KEY = "awsAccessKeyId";
     public static final String CONFIG_SECRET_KEY = "awsSecretAccessKey";
+    public static final String ASSUME_ROLE_ARN = "assumeRoleARN";
+    public static final String ASSUME_ROLE_SESSION = "AWSKinesisAgent";
+    public static final String ASSUME_ROLE_EXTERNAL_ID = "assumeRoleExternalId";
     public static final String SHUTDOWN_TIMEOUT_MILLIS_KEY = "shutdownTimeoutMillis";
     public static final String ENDPOINT_KEY = "endpoint";
     static final String LOG_FILE_KEY = "log.file";
@@ -190,5 +196,9 @@ public class AgentConfiguration extends Configuration {
     
     public String cloudwatchEndpoint() {
         return this.readString("cloudwatch." + ENDPOINT_KEY, null);
+    }
+    
+    public String stsEndpoint() {
+    	return this.readString("sts." + ENDPOINT_KEY, null);
     }
 }

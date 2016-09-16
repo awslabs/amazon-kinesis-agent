@@ -16,7 +16,7 @@ $SERVICE status >/dev/null 2>&1
 status=$?
 
 if [ "$status" -eq "1" -o "$status" -eq "2" ]; then
-    start_agent
+  start_agent
 fi
 
 exit 0

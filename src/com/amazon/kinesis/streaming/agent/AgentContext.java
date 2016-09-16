@@ -37,12 +37,14 @@ import com.amazon.kinesis.streaming.agent.tailing.FileFlow;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlowFactory;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -146,7 +148,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     public synchronized AmazonKinesisFirehose getFirehoseClient() {
         if (firehoseClient == null) {
             firehoseClient = new AmazonKinesisFirehoseClient(
-                    getAwsCredentialsProvider(), getAwsClientConfiguration());
+            		getAwsCredentialsProvider(), getAwsClientConfiguration());
             if (!Strings.isNullOrEmpty(firehoseEndpoint()))
                 firehoseClient.setEndpoint(firehoseEndpoint());
         }
@@ -181,7 +183,34 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     }
 
     public AWSCredentialsProvider getAwsCredentialsProvider() {
-        return new AgentAWSCredentialsProviderChain(this);
+    	AWSCredentialsProvider credentialsProvider = new AgentAWSCredentialsProviderChain(this);
+    	final String assumeRoleARN = readString(ASSUME_ROLE_ARN, null);
+    	if (!Strings.isNullOrEmpty(assumeRoleARN)) {
+    		credentialsProvider = 
+    				getSTSAssumeRoleSessionCredentialsProvider(assumeRoleARN, 
+    						credentialsProvider);
+    	}
+    	return credentialsProvider;
+    }
+    
+    public STSAssumeRoleSessionCredentialsProvider getSTSAssumeRoleSessionCredentialsProvider(
+    		String roleARN, AWSCredentialsProvider credentialsProvider) {
+    	Preconditions.checkNotNull(credentialsProvider);
+    	final String stsEndpoint = stsEndpoint();
+    	final String roleExternalId = readString(ASSUME_ROLE_EXTERNAL_ID, null);
+    	
+    	STSAssumeRoleSessionCredentialsProvider.Builder builder = 
+    			new STSAssumeRoleSessionCredentialsProvider.Builder(roleARN, ASSUME_ROLE_SESSION)
+    					.withLongLivedCredentialsProvider(credentialsProvider)
+    					.withRoleSessionDurationSeconds(DEFAULT_ASSUME_ROLE_DURATION_SECONDS);
+    	if (!Strings.isNullOrEmpty(roleExternalId)) {
+    		builder = builder.withExternalId(roleExternalId);
+    	}
+    	if (!Strings.isNullOrEmpty(stsEndpoint)) {
+    		builder = builder.withServiceEndpoint(stsEndpoint);
+    	}
+    	
+    	return builder.build();
     }
 
     public ClientConfiguration getAwsClientConfiguration() {

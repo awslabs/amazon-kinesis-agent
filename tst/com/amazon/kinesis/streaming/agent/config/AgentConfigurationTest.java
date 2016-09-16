@@ -110,5 +110,6 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.firehoseEndpoint(), "https://firehose.us-east-1.amazonaws.com");
         Assert.assertTrue(Strings.isNullOrEmpty(config.kinesisEndpoint()));
         Assert.assertTrue(Strings.isNullOrEmpty(config.cloudwatchEndpoint()));
+        Assert.assertTrue(Strings.isNullOrEmpty(config.stsEndpoint()));
     }
 }

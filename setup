@@ -27,7 +27,7 @@ case "$dist" in
   Ubuntu)
     install_package="apt-get install -y"
     init_dir=/etc/init.d
-    sysconfig_dir=/etc/defaults ;;
+    sysconfig_dir=/etc/default ;;
   *)
     install_package="yum install -y"
     init_dir=/etc/rc.d/init.d
@@ -92,6 +92,7 @@ download_dependencies() {
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
+                  com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
                   com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
                   com.fasterxml.jackson.core:jackson-core:2.6.3 \
                   com.fasterxml.jackson.core:jackson-databind:2.6.3 \

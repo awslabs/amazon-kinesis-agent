@@ -15,10 +15,10 @@ package com.amazon.kinesis.streaming.agent;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.ContainerCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
-import com.amazonaws.auth.ContainerCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 
 public class AgentAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
