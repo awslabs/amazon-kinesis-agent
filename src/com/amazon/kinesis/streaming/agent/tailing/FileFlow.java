@@ -104,7 +104,14 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         skipHeaderLines = readInteger("skipHeaderLines", 0);
         
         String pattern = readString("multiLineStartPattern", null);
-        recordSplitter = Strings.isNullOrEmpty(pattern) ? new SingleLineSplitter() : new RegexSplitter(pattern);
+        int maxDataBytes = readInteger("maxDataBytes", 0);
+        if (!Strings.isNullOrEmpty(pattern)) {
+            recordSplitter = new RegexSplitter(pattern);
+        } else if (maxDataBytes > 0) {
+            recordSplitter = new CompactSplitter(maxDataBytes);
+        } else {
+            recordSplitter = new SingleLineSplitter();
+        }
 
         String terminatorConfig = readString("truncatedRecordTerminator", DEFAULT_TRUNCATED_RECORD_TERMINATOR);
         if (terminatorConfig == null || terminatorConfig.getBytes(StandardCharsets.UTF_8).length >= getMaxRecordSizeBytes()) {
