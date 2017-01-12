@@ -18,8 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.LinkedHashMap;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
@@ -35,7 +33,15 @@ import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactor
  *
  * Configuration looks like:
  *
- * { "optionName": "ADDMETADATA" }
+ * { 
+ *   "optionName": "ADDMETADATA",
+ *   "metadata": {
+ *     "key": "value",
+ *     "foo": {
+ *       "bar": "baz"
+ *     }
+ *   }
+ * }
  *
  * @author zacharya
  *
@@ -63,7 +69,7 @@ public class AddMetadataConverter implements IDataConverter {
         recordMap.put("metadata", metadata);
         recordMap.put("data", dataStr);
 
-        String dataJson = jsonProducer.writeAsString(recordMap);
+        String dataJson = jsonProducer.writeAsString(recordMap) + NEW_LINE;
         return ByteBuffer.wrap(dataJson.getBytes(StandardCharsets.UTF_8));
     }
 
