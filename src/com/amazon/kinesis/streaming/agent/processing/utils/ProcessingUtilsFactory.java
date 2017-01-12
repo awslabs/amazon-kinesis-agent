@@ -26,6 +26,7 @@ import com.amazon.kinesis.streaming.agent.processing.processors.BracketsDataConv
 import com.amazon.kinesis.streaming.agent.processing.processors.CSVToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.LogToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.SingleLineDataConverter;
+import com.amazon.kinesis.streaming.agent.processing.processors.AddMetadataConverter;
 
 /**
  * The factory to create: 
@@ -40,6 +41,7 @@ import com.amazon.kinesis.streaming.agent.processing.processors.SingleLineDataCo
 public class ProcessingUtilsFactory {
     
     public static enum DataConversionOption {
+    	ADDMETADATA,
         SINGLELINE,
         CSVTOJSON,
         LOGTOJSON,
@@ -113,6 +115,8 @@ public class ProcessingUtilsFactory {
     
     private static IDataConverter buildConverter(DataConversionOption option, Configuration config) throws ConfigurationException {
         switch (option) {
+	    case ADDMETADATA:
+		return new AddMetadataConverter(config);
             case SINGLELINE:
                 return new SingleLineDataConverter();
             case CSVTOJSON:
