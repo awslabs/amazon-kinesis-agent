@@ -52,7 +52,7 @@ public class AddMetadataConverter implements IDataConverter {
     private final IJSONPrinter jsonProducer;
 
     public AddMetadataConverter(Configuration config) {
-      metadata = config.getConfigMap().get("metadataFields");
+      metadata = config.getConfigMap().get("metadata");
       jsonProducer = ProcessingUtilsFactory.getPrinter(config);
     }
 
