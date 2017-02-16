@@ -63,8 +63,9 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                if (e instanceof OutOfMemoryError) {
-                    // This prevents the JVM from hanging in case of an OOME
+                if (e instanceof OutOfMemoryError || e instanceof LinkageError) {
+                    // This prevents the JVM from hanging in case of an OOME and if we have a LinkageError
+                    // we can't trust the JVM state.
                     dontShutdownOnExit = true;
                 }
                 String msg = "FATAL: Thread " + t.getName() + " threw an unrecoverable error. Aborting application";
