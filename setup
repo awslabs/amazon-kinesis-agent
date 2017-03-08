@@ -11,6 +11,7 @@ set -e
 # of this script intended.
 dist=RedHat
 [[ -f /etc/lsb-release ]] && dist=Ubuntu
+[[ -f /etc/debian_version ]] && dist=Debian
 
 # Tell the user what OS we detected
 echo "Detected OS Distro: ${dist}"
@@ -25,6 +26,10 @@ fi
 # certain things
 case "$dist" in
   Ubuntu)
+    install_package="apt-get install -y"
+    init_dir=/etc/init.d
+    sysconfig_dir=/etc/default ;;
+  Debian)
     install_package="apt-get install -y"
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
@@ -136,6 +141,7 @@ do_uninstall () {
   echo "Removing $daemon_name from system services..."
   case "$dist" in
     Ubuntu) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
+    Debian) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
     *) chkconfig --del $daemon_name > /dev/null 2>&1 || true ;;
   esac
   
@@ -204,6 +210,7 @@ do_install () {
   
   case "$dist" in
     Ubuntu) update-rc.d $daemon_name defaults ;;
+    Debian) update-rc.d $daemon_name defaults ;;
     *) chkconfig --add $daemon_name ;;
   esac
   
