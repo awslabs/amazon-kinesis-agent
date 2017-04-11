@@ -63,7 +63,8 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                if (e instanceof OutOfMemoryError || e instanceof LinkageError) {
+                if (e instanceof VirtualMachineError || e instanceof LinkageError) {
+                    // Covers InternalError, OutOfMemoryError, StackOverflowError, UnknownError
                     // This prevents the JVM from hanging in case of an OOME and if we have a LinkageError
                     // we can't trust the JVM state.
                     dontShutdownOnExit = true;
