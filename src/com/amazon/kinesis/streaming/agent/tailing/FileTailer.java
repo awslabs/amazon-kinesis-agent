@@ -22,10 +22,10 @@ import lombok.Getter;
 
 import org.joda.time.Duration;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.metrics.Metrics;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
@@ -47,7 +47,7 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 public class FileTailer<R extends IRecord> extends AbstractExecutionThreadService implements IHeartbeatProvider {
     private static final int NO_TIMEOUT = -1;
     private static final int MAX_SPIN_WAIT_TIME_MILLIS = 1000;
-    private static final Logger LOGGER = Logging.getLogger(FileTailer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileTailer.class);
 
     @Getter private final AgentContext agentContext;
     @Getter private final FileFlow<R> flow;

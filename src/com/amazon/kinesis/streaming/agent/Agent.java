@@ -53,10 +53,6 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         AgentOptions opts = AgentOptions.parse(args);
         String configFile = opts.getConfigFile();
         AgentConfiguration config = tryReadConfigurationFile(Paths.get(opts.getConfigFile()));
-        Path logFile = opts.getLogFile() != null ? Paths.get(opts.getLogFile()) : (config != null ? config.logFile() : null);
-        String logLevel = opts.getLogLevel() != null ? opts.getLogLevel() : (config != null ? config.logLevel() : null);
-        int logMaxBackupFileIndex = (config != null ? config.logMaxBackupIndex() : -1);
-        long logMaxFileSize = (config != null ? config.logMaxFileSize() : -1L);
         final Logger logger = LoggerFactory.getLogger(Agent.class);
 
         // Install an unhandled exception hook
@@ -145,7 +141,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     private AbstractScheduledService metricsEmitter;
 
     public Agent(AgentContext agentContext) {
-        this.logger = Logging.getLogger(Agent.class);
+        this.logger = LoggerFactory.getLogger(Agent.class);
         this.agentContext = agentContext;
         this.sendingExecutor = getSendingExecutor(agentContext);
         this.checkpoints = new SQLiteFileCheckpointStore(agentContext);
