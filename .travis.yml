@@ -5,10 +5,10 @@ install:
 before_deploy:
   - mvn clean
   - sudo ./setup --build
-  - tar -zcvf /tmp/binary.tgz .
+  - tar -zcvf /tmp/amazon-kinesis-agent-${TRAVIS_TAG}.tgz .
 deploy:
   - provider: releases
-    file: /tmp/binary.tgz
+    file: /tmp/amazon-kinesis-agent-${TRAVIS_TAG}.tgz
     api_key: "$OAUTH_TOKEN"
     skip_cleanup: true
     on:
