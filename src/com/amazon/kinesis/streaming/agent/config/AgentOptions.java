@@ -31,16 +31,9 @@ import com.google.common.collect.Range;
 public class AgentOptions {
 
     private static final String DEFAULT_CONFIG_FILE = "/etc/aws-kinesis/agent.json";
-    private static final String[] VALID_LOG_LEVELS = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" };
 
     @Parameter(names = { "--configuration", "-c" }, description = "Path to the configuration file for the agent.", validateWith = FileReadableValidator.class)
     @Getter String configFile = DEFAULT_CONFIG_FILE;
-
-    @Parameter(names = { "--log-file", "-l" }, description = "Path to the agent's log file.")
-    @Getter String logFile = null;
-
-    @Parameter(names = { "--log-level", "-L" }, description = "Log level. Can be one of: TRACE,DEBUG,INFO,WARN,ERROR.", validateWith = LogLevelValidator.class)
-    @Getter String logLevel = null;
 
     @Parameter(names = { "--help", "-h" }, help = true, description = "Display this help message")
     Boolean help;
@@ -88,19 +81,6 @@ public class AgentOptions {
         }
     }
 
-    public static class LogLevelValidator implements IParameterValidator {
-        @Override
-        public void validate(String name, String value)
-                throws ParameterException {
-            if (ArrayUtils.indexOf(VALID_LOG_LEVELS, value) < 0)
-                throw new ParameterException("Valid values for parameter "
-                        + name + " are: "
-                        + Joiner.on(",").join(VALID_LOG_LEVELS) + ". Value "
-                        + value + " is not valid.");
-        }
-
-    }
-
     public static class FileReadableValidator implements IParameterValidator {
         @Override
         public void validate(String name, String value)
@@ -116,6 +96,5 @@ public class AgentOptions {
             }
 
         }
-
     }
 }

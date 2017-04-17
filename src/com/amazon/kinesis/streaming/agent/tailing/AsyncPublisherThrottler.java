@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -58,7 +58,7 @@ public class AsyncPublisherThrottler<R extends IRecord> {
     static final int DEFAULT_PERIOD_BETWEEN_YIELDS_MILLIS = 1_000;
     static final long SPIN_TIME_MILLIS = 250;
 
-    private static final Logger LOGGER = Logging.getLogger(AsyncPublisherThrottler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncPublisherThrottler.class);
 
     /** initial backoff in milliseconds */
     @Getter private final long initialBackoffMillis;

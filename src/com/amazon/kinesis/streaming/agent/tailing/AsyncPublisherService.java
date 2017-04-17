@@ -18,10 +18,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.Checkpointer;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
 import com.google.common.annotations.VisibleForTesting;
@@ -39,7 +39,7 @@ public final class AsyncPublisherService<R extends IRecord>
   implements IHeartbeatProvider {
     private static final int NO_TIMEOUT = -1;
     private static final long SHUTDOWN_MARGIN_MILLIS = 500;
-    private static final Logger LOGGER = Logging.getLogger(AsyncPublisherService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncPublisherService.class);
 
     private final AsyncPublisher<R> publisher;
     private Thread serviceThread;

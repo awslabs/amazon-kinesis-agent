@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.AgentOptions;
@@ -52,12 +53,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         AgentOptions opts = AgentOptions.parse(args);
         String configFile = opts.getConfigFile();
         AgentConfiguration config = tryReadConfigurationFile(Paths.get(opts.getConfigFile()));
-        Path logFile = opts.getLogFile() != null ? Paths.get(opts.getLogFile()) : (config != null ? config.logFile() : null);
-        String logLevel = opts.getLogLevel() != null ? opts.getLogLevel() : (config != null ? config.logLevel() : null);
-        int logMaxBackupFileIndex = (config != null ? config.logMaxBackupIndex() : -1);
-        long logMaxFileSize = (config != null ? config.logMaxFileSize() : -1L);
-        Logging.initialize(logFile, logLevel, logMaxBackupFileIndex, logMaxFileSize);
-        final Logger logger = Logging.getLogger(Agent.class);
+        final Logger logger = LoggerFactory.getLogger(Agent.class);
 
         // Install an unhandled exception hook
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -146,7 +142,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     private AbstractScheduledService metricsEmitter;
 
     public Agent(AgentContext agentContext) {
-        this.logger = Logging.getLogger(Agent.class);
+        this.logger = LoggerFactory.getLogger(Agent.class);
         this.agentContext = agentContext;
         this.sendingExecutor = getSendingExecutor(agentContext);
         this.checkpoints = new SQLiteFileCheckpointStore(agentContext);
