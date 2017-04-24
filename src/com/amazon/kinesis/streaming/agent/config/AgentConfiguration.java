@@ -24,7 +24,7 @@ public class AgentConfiguration extends Configuration {
     static final String[] VALID_LOG_LEVELS = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" };
     static final long DEFAULT_SENDING_THREADS_KEEPALIVE_MILLIS = 60_000L;
     static final int DEFAULT_SENDING_THREADS_MAX_QUEUE_SIZE = 100;
-    static final String DEFAULT_CHECKPOINTS_FILE = "/opt/aws-kinesis-agent/checkpoints";
+    static final String DEFAULT_CHECKPOINTS_FILE = "/tmp/aws-kinesis-agent/checkpoints";
     static final int DEFAULT_MAX_SENDING_THREADS_PER_CORE = 12;
 
     static final int DEFAULT_CW_QUEUE_SIZE = 10_000;
