@@ -15,6 +15,7 @@ package com.amazon.kinesis.streaming.agent;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.ContainerCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
@@ -25,6 +26,7 @@ public class AgentAWSCredentialsProviderChain extends AWSCredentialsProviderChai
         super(new AgentAWSCredentialsProvider(config),
                 new EnvironmentVariableCredentialsProvider(),
                 new SystemPropertiesCredentialsProvider(),
+                new ContainerCredentialsProvider(),
                 new ProfileCredentialsProvider(),
                 new InstanceProfileCredentialsProvider());
     }

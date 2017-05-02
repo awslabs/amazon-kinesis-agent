@@ -4,24 +4,19 @@
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
 DAEMON_NAME=aws-kinesis-agent
-PIDFILE=/var/run/$DAEMON_NAME.pid
 SERVICE="service $DAEMON_NAME"
-
-function get_agent_pid() {
-  echo $(ps -p $(cat $PIDFILE 2>/dev/null) ho pid 2>/dev/null)
-}
 
 function start_agent() {
   $SERVICE restart || exit 1
   sleep 3
-  [[ -n $(get_agent_pid) ]] || exit 1
+  $SERVICE status >/dev/null 2>&1 || exit 1
 }
 
-# Check if PID file exists.
-# If it does not, it means either the agent was never started or it was stopped by the user.
-[[ -f $PIDFILE ]] || exit 0
+$SERVICE status >/dev/null 2>&1
+status=$?
 
-# Check if the child Java process is alive. If not, we should start
-[[ -n $(get_agent_pid) ]] || start_agent
+if [ "$status" -eq "1" -o "$status" -eq "2" ]; then
+  start_agent
+fi
 
 exit 0
