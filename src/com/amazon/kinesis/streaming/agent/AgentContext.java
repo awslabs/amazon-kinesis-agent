@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -53,7 +54,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * state.
  */
 public class AgentContext extends AgentConfiguration implements IMetricsContext {
-    private static final Logger LOGGER = Logging.getLogger(AgentContext.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentContext.class);
 
     @VisibleForTesting
     static final String DEFAULT_USER_AGENT = "aws-kinesis-agent";
@@ -100,7 +101,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
      */
     public String version() {
         final String VERSION_INFO_FILE = "versionInfo.properties";
-        try (InputStream versionInfoStream = Logging.class.getResourceAsStream(VERSION_INFO_FILE)) {
+        try (InputStream versionInfoStream = Agent.class.getResourceAsStream(VERSION_INFO_FILE)) {
             Properties versionInfo = new Properties();
             versionInfo.load(versionInfoStream);
             return versionInfo.getProperty("version");

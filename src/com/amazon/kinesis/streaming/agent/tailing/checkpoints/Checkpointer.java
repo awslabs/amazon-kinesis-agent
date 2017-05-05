@@ -14,10 +14,10 @@
 package com.amazon.kinesis.streaming.agent.tailing.checkpoints;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import lombok.Getter;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow;
 import com.amazon.kinesis.streaming.agent.tailing.IRecord;
 import com.amazon.kinesis.streaming.agent.tailing.RecordBuffer;
@@ -39,7 +39,7 @@ import com.google.common.base.Preconditions;
  * @param <R>
  */
 public class Checkpointer<R extends IRecord> {
-    private static final Logger LOGGER = Logging.getLogger(Checkpointer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Checkpointer.class);
 
     @Getter private final FileCheckpointStore store;
     @Getter private final FileFlow<R> flow;

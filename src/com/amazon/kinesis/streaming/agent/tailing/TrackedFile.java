@@ -26,8 +26,8 @@ import lombok.Getter;
 import lombok.ToString;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.google.common.base.Preconditions;
 
 /**
@@ -37,7 +37,7 @@ import com.google.common.base.Preconditions;
 @NotThreadSafe
 @ToString(exclude={"channel", "flow"})
 public class TrackedFile {
-    private static final Logger LOGGER = Logging.getLogger(TrackedFile.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TrackedFile.class);
     @Getter protected final FileFlow<?> flow;
     @Getter protected final FileId id;
     @Getter protected final Path path;

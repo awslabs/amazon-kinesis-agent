@@ -23,10 +23,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 
@@ -67,7 +67,7 @@ import com.google.common.base.Stopwatch;
  * @param <R> The record type.
  */
 public final class PublishingQueue<R extends IRecord> implements IHeartbeatProvider {
-    private static final Logger LOGGER = Logging.getLogger(PublishingQueue.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PublishingQueue.class);
 
     private final FileFlow<R> flow;
     private final String name;

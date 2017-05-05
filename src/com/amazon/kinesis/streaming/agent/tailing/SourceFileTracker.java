@@ -25,9 +25,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 import lombok.Getter;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -136,7 +136,7 @@ import com.google.common.base.Preconditions;
  */
 @NotThreadSafe
 public class SourceFileTracker {
-    private static final Logger LOGGER = Logging.getLogger(SourceFileTracker.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SourceFileTracker.class);
     @VisibleForTesting
     final FileFlow<?> flow;
     private final SourceFile sourceFile;

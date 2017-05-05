@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.slf4j.Logger;
-
-import com.amazon.kinesis.streaming.agent.Logging;
+import org.slf4j.LoggerFactory;
 
 /**
  * A CWPublisherRunnable contains the logic of when to publish metrics.
@@ -29,7 +28,7 @@ import com.amazon.kinesis.streaming.agent.Logging;
 
 public class CWPublisherRunnable<KeyType> implements Runnable {
 
-    private static final Logger LOG = Logging.getLogger(CWPublisherRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CWPublisherRunnable.class);
 
     private final ICWMetricsPublisher<KeyType> metricsPublisher;
     private final MetricAccumulatingQueue<KeyType> queue;
@@ -138,6 +137,9 @@ public class CWPublisherRunnable<KeyType> implements Runnable {
                 metricsPublisher.publishMetrics(dataToPublish);
             } catch (Throwable t) {
                 LOG.error("Caught exception thrown by metrics Publisher in CWPublisherRunnable", t);
+                if (t instanceof LinkageError) {
+                    throw t;
+                }
             }
             // Changing the value of lastFlushTime will change the time when metrics are flushed next.
             lastFlushTime = getTime() + nextJitterValueToUse;

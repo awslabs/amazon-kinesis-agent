@@ -28,12 +28,15 @@ INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
 # This script is in /etc/rc.d/init.d/ and the executable is in /usr/bin
 BASEDIR=${BASEDIR%/}
 DAEMON_EXEC=$BASEDIR/usr/bin/start-$DAEMON_NAME
-LOGLEVEL=${LOGLEVEL:-INFO}
+LOG_CONFIG=${LOG_CONFIG:-/etc/aws-kinesis/log4j.xml}
 ARGS=${ARGS:-}
 RETVAL=0
 
+
 # load any configs/environment from /etc/default/<name>
 [ -e /etc/default/$DAEMON_NAME ] && . /etc/default/$DAEMON_NAME
+
+export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
 
 # Export the settings
 do_start () {
@@ -48,7 +51,6 @@ do_start () {
           --pidfile $PIDFILE \
           --chuid $AGENT_USER \
           --startas $DAEMON_EXEC -- \
-                -L $LOGLEVEL \
                 $ARGS
 }
 
@@ -91,8 +93,8 @@ case "$command" in
     esac
     ;;
   restart)
-    $0 stop
-    $0 start
+    do_stop
+    do_start
     ;;
   status)
     status_of_proc -p $PIDFILE $DAEMON_NAME $NAME

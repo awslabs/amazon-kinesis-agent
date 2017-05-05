@@ -45,7 +45,7 @@ LOG_DIR=/var/log/$DAEMON_NAME
 [[ -d $STATE_HOME ]] || install -o $AGENT_USER -g $AGENT_USER -d $STATE_HOME
 MUTEXFILE=$STATE_HOME/mutex
 SHUTDOWN_TIME=11   #10 second default value in AgentConfiguration.java, +1 second buffer
-AGENT_LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+LOG_CONFIG=${LOG_CONFIG:-/etc/aws-kinesis/log4j.xml}
 AGENT_ARGS=${AGENT_ARGS:-}
 
 INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
@@ -67,8 +67,9 @@ do_start () {
   export AWS_ACCESS_KEY_ID
   export AWS_SECRET_ACCESS_KEY
   export AWS_DEFAULT_REGION
+  export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
   
-  DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC -L $AGENT_LOG_LEVEL $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
+  DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 
   pid=$!
   echo $pid > $PIDFILE
