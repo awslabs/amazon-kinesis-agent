@@ -71,12 +71,11 @@ public class LogToJSONDataConverter implements IDataConverter {
         Map<String, Object> recordMap;
 
         try {
-            logger.debug("Parsing Line: " + dataStr);
             recordMap = logParser.parseLogRecord(dataStr, fields);
         } catch (LogParsingException e) {
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
-            logger.debug("Exception while parsing " + dataStr + ": " + e.toString());
+            logger.debug("Exception while parsing log: " + dataStr + ": " + e.toString());
             return null;
         }
 
