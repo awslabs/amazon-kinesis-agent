@@ -23,14 +23,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.amazon.kinesis.streaming.agent.Agent;
 import com.amazon.kinesis.streaming.agent.Logging;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import org.slf4j.Logger;
 
 /**
  * Specification of the file(s) to be tailed.
