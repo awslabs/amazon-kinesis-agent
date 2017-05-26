@@ -41,7 +41,6 @@ public class SourceFile {
     @Getter private final Path directory;
     @Getter private final Path filePattern;
     private final PathMatcher pathMatcher;
-    final Logger logger = Logging.getLogger(getClass());
 
     public SourceFile(FileFlow<?> flow, String filePattern) {
         this.flow = flow;
@@ -122,7 +121,7 @@ public class SourceFile {
         //check the permissions of every level in the directory path
         for(Path level : dir.toAbsolutePath()){
             if(!Files.isReadable(level)){
-                logger.warn("Permission Denied: Agent user unable to read " + dir.toString());
+                Logging.getLogger(getClass()).warn("Permission Denied: Agent user unable to read " + dir.toString());
             }
         }
     }
