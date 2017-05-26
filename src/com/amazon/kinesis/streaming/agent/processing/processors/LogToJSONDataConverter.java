@@ -75,7 +75,8 @@ public class LogToJSONDataConverter implements IDataConverter {
         } catch (LogParsingException e) {
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
-            logger.debug("Exception while parsing log: " + dataStr + ": " + e.toString());
+
+            Logging.getLogger(getClass()).debug("Exception while parsing log: " + dataStr + ": " + e.toString());
             return null;
         }
 

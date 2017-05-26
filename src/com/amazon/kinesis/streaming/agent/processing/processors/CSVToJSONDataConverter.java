@@ -78,7 +78,7 @@ public class CSVToJSONDataConverter implements IDataConverter {
             try {
                 recordMap.put(fieldNames.get(i), columns[i]);
             } catch (ArrayIndexOutOfBoundsException e) {
-                logger.debug("Null field in CSV detected");
+                Logging.getLogger(getClass()).debug("Null field in CSV detected");
                 recordMap.put(fieldNames.get(i), null);
             } catch (Exception e) {
                 throw new DataConversionException("Unable to create the column map", e);
