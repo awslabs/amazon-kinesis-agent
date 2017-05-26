@@ -41,7 +41,7 @@ public class SourceFile {
     @Getter private final Path directory;
     @Getter private final Path filePattern;
     private final PathMatcher pathMatcher;
-    final Logger logger = Logging.getLogger(Agent.class);
+    final Logger logger = Logging.getLogger(getClass());
 
     public SourceFile(FileFlow<?> flow, String filePattern) {
         this.flow = flow;
