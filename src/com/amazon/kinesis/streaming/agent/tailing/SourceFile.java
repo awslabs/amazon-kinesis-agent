@@ -23,11 +23,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.amazon.kinesis.streaming.agent.Agent;
+import com.amazon.kinesis.streaming.agent.Logging;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import org.slf4j.Logger;
 
 /**
  * Specification of the file(s) to be tailed.
@@ -38,6 +41,7 @@ public class SourceFile {
     @Getter private final Path directory;
     @Getter private final Path filePattern;
     private final PathMatcher pathMatcher;
+    final Logger logger = Logging.getLogger(Agent.class);
 
     public SourceFile(FileFlow<?> flow, String filePattern) {
         this.flow = flow;
@@ -114,6 +118,13 @@ public class SourceFile {
     private void validateDirectory(Path dir) {
         Preconditions.checkArgument(dir != null, "Directory component is empty!");
         // TODO: validate that the directory component has no glob characters
+
+        //check the permissions of every level in the directory path
+        for(Path level : dir.toAbsolutePath()){
+            if(!Files.isReadable(level)){
+                logger.warn("Permission Denied: Agent user unable to read " + dir.toString());
+            }
+        }
     }
     
     /**
