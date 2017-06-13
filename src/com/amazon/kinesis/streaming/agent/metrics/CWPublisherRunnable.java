@@ -138,6 +138,9 @@ public class CWPublisherRunnable<KeyType> implements Runnable {
                 metricsPublisher.publishMetrics(dataToPublish);
             } catch (Throwable t) {
                 LOG.error("Caught exception thrown by metrics Publisher in CWPublisherRunnable", t);
+                if (t instanceof LinkageError) {
+                    throw t;
+                }
             }
             // Changing the value of lastFlushTime will change the time when metrics are flushed next.
             lastFlushTime = getTime() + nextJitterValueToUse;
