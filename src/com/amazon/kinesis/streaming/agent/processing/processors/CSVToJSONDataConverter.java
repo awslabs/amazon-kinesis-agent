@@ -47,7 +47,6 @@ import com.amazon.kinesis.streaming.agent.Logging;
  */
 public class CSVToJSONDataConverter implements IDataConverter {
 
-    protected final Logger logger;
     private static String FIELDS_KEY = "customFieldNames";
     private static String DELIMITER_KEY = "delimiter";
     private final List<String> fieldNames;
@@ -56,7 +55,6 @@ public class CSVToJSONDataConverter implements IDataConverter {
 
     
     public CSVToJSONDataConverter(Configuration config) {
-        this.logger = Logging.getLogger(getClass());
         fieldNames = config.readList(FIELDS_KEY, String.class);
         delimiter = config.readString(DELIMITER_KEY, ",");
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
@@ -78,7 +76,7 @@ public class CSVToJSONDataConverter implements IDataConverter {
             try {
                 recordMap.put(fieldNames.get(i), columns[i]);
             } catch (ArrayIndexOutOfBoundsException e) {
-                logger.debug("Null field in CSV detected");
+                Logging.getLogger(getClass()).debug("Null field in CSV detected");
                 recordMap.put(fieldNames.get(i), null);
             } catch (Exception e) {
                 throw new DataConversionException("Unable to create the column map", e);

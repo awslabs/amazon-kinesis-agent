@@ -45,13 +45,11 @@ import com.amazon.kinesis.streaming.agent.Logging;
  */
 public class LogToJSONDataConverter implements IDataConverter {
 
-    protected final Logger logger;
     private List<String> fields;
     private ILogParser logParser;
     private IJSONPrinter jsonProducer;
 
     public LogToJSONDataConverter(Configuration config) {
-        this.logger = Logging.getLogger(getClass());
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
         logParser = ProcessingUtilsFactory.getLogParser(config);
         if (config.containsKey(ProcessingUtilsFactory.CUSTOM_FIELDS_KEY)) {
@@ -75,7 +73,7 @@ public class LogToJSONDataConverter implements IDataConverter {
         } catch (LogParsingException e) {
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
-            logger.debug("Exception while parsing log: " + dataStr + ": " + e.toString());
+            Logging.getLogger(getClass()).debug("Exception while parsing log: " + dataStr + ": " + e.toString());
             return null;
         }
 
