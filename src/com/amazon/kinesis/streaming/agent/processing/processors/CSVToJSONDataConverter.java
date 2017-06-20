@@ -25,6 +25,8 @@ import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionEx
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
 import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
+import org.slf4j.Logger;
+import com.amazon.kinesis.streaming.agent.Logging;
 
 /**
  * Convert a CSV record into JSON record.
@@ -44,12 +46,13 @@ import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactor
  *
  */
 public class CSVToJSONDataConverter implements IDataConverter {
-    
+
     private static String FIELDS_KEY = "customFieldNames";
     private static String DELIMITER_KEY = "delimiter";
     private final List<String> fieldNames;
     private final String delimiter;
     private final IJSONPrinter jsonProducer;
+
     
     public CSVToJSONDataConverter(Configuration config) {
         fieldNames = config.readList(FIELDS_KEY, String.class);
@@ -73,6 +76,7 @@ public class CSVToJSONDataConverter implements IDataConverter {
             try {
                 recordMap.put(fieldNames.get(i), columns[i]);
             } catch (ArrayIndexOutOfBoundsException e) {
+                Logging.getLogger(getClass()).debug("Null field in CSV detected");
                 recordMap.put(fieldNames.get(i), null);
             } catch (Exception e) {
                 throw new DataConversionException("Unable to create the column map", e);
