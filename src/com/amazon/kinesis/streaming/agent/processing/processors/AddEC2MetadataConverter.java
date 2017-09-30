@@ -45,7 +45,8 @@ import com.amazon.kinesis.streaming.agent.Logging;
  *
  * Configuration of this converter looks like:
  * {
- *     "optionName": "ADDEC2METADATA"
+ *     "optionName": "ADDEC2METADATA",
+ *     "logFormat": "RFC3339SYSLOG"
  * }
  *
  * @author buholzer
