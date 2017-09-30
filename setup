@@ -98,6 +98,7 @@ download_dependencies() {
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
+                  com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
                   com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
                   com.fasterxml.jackson.core:jackson-core:2.6.3 \
                   com.fasterxml.jackson.core:jackson-databind:2.6.3 \
