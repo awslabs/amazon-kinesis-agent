@@ -58,16 +58,30 @@ public class AddEC2MetadataConverter implements IDataConverter {
   private ILogParser logParser;
   private IJSONPrinter jsonProducer;
   private Map<String, Object> metadata;
+  private long metadataTimestamp;
+  private long metadataTTL = 1000 * 60 * 60; // Update metadata every hour
 
   public AddEC2MetadataConverter(Configuration config) {
-      jsonProducer = ProcessingUtilsFactory.getPrinter(config);
-      logParser = ProcessingUtilsFactory.getLogParser(config);
-      refreshEC2Metadata();
+    jsonProducer = ProcessingUtilsFactory.getPrinter(config);
+    logParser = ProcessingUtilsFactory.getLogParser(config);
+
+    if (config.containsKey("metadataTTL")) {
+      try {
+        metadataTTL = config.readInteger("metadataTTL") * 1000;
+        LOGGER.info("Setting metadata TTL to " + metadataTTL + " millis");
+     } catch(Exception ex) {
+        LOGGER.warn("Error converting metadataTTL, ignoring");
+     }
+    }
+
+    refreshEC2Metadata();
   }
 
   @Override
   public ByteBuffer convert(ByteBuffer data) throws DataConversionException {
 
+    if ((metadataTimestamp + metadataTTL) < System.currentTimeMillis()) refreshEC2Metadata();
+    
     if (metadata == null || metadata.isEmpty()) {
       LOGGER.warn("Unable to append metadata, no metadata found");
       return data;
@@ -96,6 +110,8 @@ public class AddEC2MetadataConverter implements IDataConverter {
   private void refreshEC2Metadata() {
     LOGGER.info("Refreshing EC2 Metadata");
 
+    metadataTimestamp = System.currentTimeMillis();
+    
     try {
       EC2MetadataUtils.InstanceInfo info = EC2MetadataUtils.getInstanceInfo();
 
@@ -107,6 +123,7 @@ public class AddEC2MetadataConverter implements IDataConverter {
       metadata.put("accountId", info.getAccountId());
       metadata.put("amiId", info.getImageId());
       metadata.put("region", info.getRegion());
+      metadata.put("metadataTimestamp", metadataTimestamp);
 
       final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
       DescribeTagsResult result = ec2.describeTags(
