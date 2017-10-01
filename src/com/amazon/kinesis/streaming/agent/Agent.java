@@ -14,11 +14,16 @@
 
 package com.amazon.kinesis.streaming.agent;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -87,6 +92,8 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             if (config == null) {
                 config = readConfigurationFile(Paths.get(opts.getConfigFile()));
             }
+            // Read the config directory
+            config = readConfigurationDirectory(config);            
             // Initialize and start the agent
             AgentContext agentContext = new AgentContext(config);
             if (agentContext.flows().isEmpty()) {
@@ -133,6 +140,43 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             return null;
         }
     }
+    
+private static AgentConfiguration readConfigurationDirectory(AgentConfiguration agentConfiguration) {
+    final String DEFAULT_CONFIG_DIRECTORY = "/etc/aws-kinesis/agent.d/";
+    final Logger logger = Logging.getLogger(Agent.class);
+
+    File configDir = new File(DEFAULT_CONFIG_DIRECTORY);
+
+    if (!configDir.exists() || !configDir.isDirectory()) return agentConfiguration;
+
+    // Add flows from the main configuration
+    List<Configuration> flows = new LinkedList();
+    flows.addAll((List<Configuration>) agentConfiguration.getConfigMap().get("flows"));
+
+    // Read all configuration files
+    File[] configFiles = configDir.listFiles();
+
+    Configuration config = null;
+    
+    for (File file : configFiles) {
+        if (file.isFile()) {
+            try {
+                logger.info("Reading flow configuration from file: " + file.getName());
+                config = Configuration.get(new FileInputStream(file));
+            } catch (Exception ex) {
+                logger.warn("Error reading configuration file, ignoring - " + file.getName());
+            }
+            if (config.containsKey("flows")) flows.addAll((List<Configuration>) config.getConfigMap().get("flows"));
+        }
+    }
+
+    logger.info("Found " + flows.size() + " configured flow(s)");
+
+    // Append flows
+    HashMap<String, Object> newConfig = new HashMap<String,Object>(agentConfiguration.getConfigMap());
+    newConfig.put("flows", flows);
+    return new AgentConfiguration(newConfig);
+}    
 
     private final AgentContext agentContext;
     private final HeartbeatService heartbeat;
