@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -123,7 +125,9 @@ public class AddEC2MetadataConverter implements IDataConverter {
       metadata.put("accountId", info.getAccountId());
       metadata.put("amiId", info.getImageId());
       metadata.put("region", info.getRegion());
-      metadata.put("metadataTimestamp", metadataTimestamp);
+      metadata.put("metadataTimestamp",
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+              .format(new Date(metadataTimestamp)));
 
       final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
       DescribeTagsResult result = ec2.describeTags(
