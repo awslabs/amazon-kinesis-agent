@@ -110,7 +110,7 @@ public class AddEC2MetadataConverter implements IDataConverter {
   }
 
   private void refreshEC2Metadata() {
-    LOGGER.info("Refreshing EC2 Metadata");
+    LOGGER.info("Refreshing EC2 metadata");
 
     metadataTimestamp = System.currentTimeMillis();
     
@@ -141,7 +141,7 @@ public class AddEC2MetadataConverter implements IDataConverter {
       }
       metadata.put("tags", metadataTags);
     } catch (Exception ex) {
-      LOGGER.warn("Error while updating ec2 metadata - " + ex.getMessage() + ", ignoring");
+      LOGGER.warn("Error while updating EC2 metadata - " + ex.getMessage() + ", ignoring");
     }
   }
 }
