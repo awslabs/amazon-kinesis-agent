@@ -44,6 +44,7 @@ agent_user_name=aws-kinesis-agent-user
 bin_dir=/usr/bin
 cron_dir=/etc/cron.d
 config_dir=/etc/aws-kinesis
+config_flow_dir=/etc/aws-kinesis/agent.d
 jar_dir=/usr/share/${daemon_name}/lib
 dependencies_dir=./dependencies
 log_dir=/var/log/${daemon_name}
@@ -179,6 +180,7 @@ do_install () {
   do_build
   
   install -d ${config_dir}
+  install -d ${config_flow_dir}
   install -d ${jar_dir}
   install -d ${init_dir}
   install -d ${cron_dir}
