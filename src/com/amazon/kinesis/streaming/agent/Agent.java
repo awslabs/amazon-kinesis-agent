@@ -163,10 +163,11 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 try {
                     logger.info("Reading flow configuration from file: " + file.getName());
                     config = Configuration.get(new FileInputStream(file));
+                    if ((config != null) && config.containsKey("flows"))
+                        flows.addAll((List<Configuration>) config.getConfigMap().get("flows"));
                 } catch (Exception ex) {
                     logger.warn("Error reading configuration file, ignoring - " + file.getName());
                 }
-                if (config.containsKey("flows")) flows.addAll((List<Configuration>) config.getConfigMap().get("flows"));
             }
         }
 
