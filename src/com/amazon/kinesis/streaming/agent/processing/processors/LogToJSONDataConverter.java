@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
+import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.LogParsingException;
