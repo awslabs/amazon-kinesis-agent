@@ -89,6 +89,7 @@ download_jar() {
 
 download_dependencies() {
   which ant > /dev/null || $install_package ant
+  which wget > /dev/null || $install_package wget
   
   install -d ${dependencies_dir}
   
