@@ -18,6 +18,7 @@
    *  account.
    */
   "cloudwatch.emitMetrics": false,
+  "cloudwatch.tagInstance": true,
   "cloudwatch.metricsBufferTimeMillis": 25,
   "cloudwatch.metricsQueueSize": 100,
   "log.emitInternalMetrics": true,

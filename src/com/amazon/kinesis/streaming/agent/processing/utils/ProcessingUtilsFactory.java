@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -22,12 +22,12 @@ import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.ILogParser;
 import com.amazon.kinesis.streaming.agent.processing.parsers.ApacheLogParser;
 import com.amazon.kinesis.streaming.agent.processing.parsers.SysLogParser;
+import com.amazon.kinesis.streaming.agent.processing.processors.AddEC2MetadataConverter;
+import com.amazon.kinesis.streaming.agent.processing.processors.AddMetadataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.BracketsDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.CSVToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.LogToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.SingleLineDataConverter;
-import com.amazon.kinesis.streaming.agent.processing.processors.AddMetadataConverter;
-import com.amazon.kinesis.streaming.agent.processing.processors.AddEC2MetadataConverter;
 
 /**
  * The factory to create: 
@@ -42,8 +42,8 @@ import com.amazon.kinesis.streaming.agent.processing.processors.AddEC2MetadataCo
 public class ProcessingUtilsFactory {
     
     public static enum DataConversionOption {
-    	ADDMETADATA,
-	ADDEC2METADATA,
+        ADDMETADATA,
+        ADDEC2METADATA,
         SINGLELINE,
         CSVTOJSON,
         LOGTOJSON,
@@ -117,10 +117,10 @@ public class ProcessingUtilsFactory {
     
     private static IDataConverter buildConverter(DataConversionOption option, Configuration config) throws ConfigurationException {
         switch (option) {
-	    case ADDMETADATA:
-		return new AddMetadataConverter(config);
-	    case ADDEC2METADATA:
-		return new AddEC2MetadataConverter(config);
+            case ADDMETADATA:
+                return new AddMetadataConverter(config);
+            case ADDEC2METADATA:
+                return new AddEC2MetadataConverter(config);
             case SINGLELINE:
                 return new SingleLineDataConverter();
             case CSVTOJSON:

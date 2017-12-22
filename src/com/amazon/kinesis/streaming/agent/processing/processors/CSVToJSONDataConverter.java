@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -20,13 +20,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
+import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
 import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
-import org.slf4j.Logger;
-import com.amazon.kinesis.streaming.agent.Logging;
 
 /**
  * Convert a CSV record into JSON record.
@@ -46,17 +45,14 @@ import com.amazon.kinesis.streaming.agent.Logging;
  *
  */
 public class CSVToJSONDataConverter implements IDataConverter {
-
-    protected final Logger logger;
+    
     private static String FIELDS_KEY = "customFieldNames";
     private static String DELIMITER_KEY = "delimiter";
     private final List<String> fieldNames;
     private final String delimiter;
     private final IJSONPrinter jsonProducer;
-
     
     public CSVToJSONDataConverter(Configuration config) {
-        this.logger = Logging.getLogger(getClass());
         fieldNames = config.readList(FIELDS_KEY, String.class);
         delimiter = config.readString(DELIMITER_KEY, ",");
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);

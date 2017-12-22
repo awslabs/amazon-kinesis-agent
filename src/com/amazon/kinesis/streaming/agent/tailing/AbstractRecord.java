@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -27,8 +27,10 @@ public abstract class AbstractRecord  implements IRecord {
     protected final ByteBuffer data;
     protected final TrackedFile file;
     protected final long startOffset;
+    // data length before data processing
+    protected final long originalLength;
 
-    public AbstractRecord(TrackedFile file, long offset, ByteBuffer data) {
+    public AbstractRecord(TrackedFile file, long offset, ByteBuffer data, long originalLength) {
         Preconditions.checkArgument(offset >= 0,
                 "The offset of a record (%s) must be a non-negative integer (File: %s)",
                 offset, file);
@@ -38,10 +40,11 @@ public abstract class AbstractRecord  implements IRecord {
         this.data = data;
         this.file = file;
         this.startOffset = offset;
+        this.originalLength = originalLength;
     }
 
-    public AbstractRecord(TrackedFile file, long offset, byte[] data) {
-        this(file, offset, ByteBuffer.wrap(data));
+    public AbstractRecord(TrackedFile file, long offset, byte[] data, long originalLength) {
+        this(file, offset, ByteBuffer.wrap(data), originalLength);
     }
     
     @Override
@@ -56,7 +59,7 @@ public abstract class AbstractRecord  implements IRecord {
 
     @Override
     public long endOffset() {
-        return startOffset + dataLength();
+        return startOffset + originalLength;
     }
 
     @Override

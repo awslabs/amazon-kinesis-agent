@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -29,6 +29,7 @@ public class AgentConfiguration extends Configuration {
 
     static final int DEFAULT_CW_QUEUE_SIZE = 10_000;
     static final boolean DEFAULT_CW_EMIT_METRICS = true;
+    static final boolean DEFAULT_CW_TAG_INSTANCE = false;
     static final long DEFAULT_CW_BUFFER_TIME_MILLIS = 30_000L;
     static final boolean DEFAULT_LOG_EMIT_METRICS = false;
     static final boolean DEFAULT_LOG_EMIT_INTERNAL_METRICS = false;
@@ -107,6 +108,11 @@ public class AgentConfiguration extends Configuration {
     public boolean cloudwatchEmitMetrics() {
         return this.readBoolean("cloudwatch.emitMetrics",
                 DEFAULT_CW_EMIT_METRICS);
+    }
+    
+    public boolean cloudwatchTagInstance() {
+        return this.readBoolean("cloudwatch.tagInstance",
+                DEFAULT_CW_TAG_INSTANCE);
     }
 
     public long cloudwatchMetricsBufferTimeMillis() {

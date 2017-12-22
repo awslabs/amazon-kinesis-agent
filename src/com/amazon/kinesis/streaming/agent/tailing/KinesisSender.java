@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -27,13 +27,13 @@ import com.amazon.kinesis.streaming.agent.metrics.IMetricsScope;
 import com.amazon.kinesis.streaming.agent.metrics.Metrics;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.kinesis.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.kinesis.model.PutRecordsRequest;
 import com.amazonaws.services.kinesis.model.PutRecordsRequestEntry;
 import com.amazonaws.services.kinesis.model.PutRecordsResult;
 import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -42,6 +42,7 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
     private static final String RECORDS_ATTEMPTED_METRIC = "RecordSendAttempts";
     private static final String RECORD_ERRORS_METRIC = "RecordSendErrors";
     private static final String BYTES_SENT_METRIC = "BytesSent";
+    private static final String RECORDS_SENT_METRIC = "RecordsSent";
     private static final String SENDER_NAME = "KinesisSender";
 
     @Getter private final AgentContext agentContext;
@@ -78,6 +79,9 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
         activePutRecordsCalls.incrementAndGet();
         IMetricsScope metrics = agentContext.beginScope();
         metrics.addDimension(Metrics.DESTINATION_DIMENSION, "KinesisStream:" + getDestination());
+        if (!Strings.isNullOrEmpty(agentContext.getInstanceTag())) {
+            metrics.addDimension(Metrics.INSTANCE_DIMENSION, agentContext.getInstanceTag());
+        }
         try {
             BufferSendResult<KinesisRecord> sendResult = null;
             List<PutRecordsRequestEntry> requestRecords = new ArrayList<>();
@@ -133,6 +137,7 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
                     sendResult = BufferSendResult.succeeded_partially(buffer, requestRecords.size());
                 }
                 metrics.addData(BYTES_SENT_METRIC, totalBytesSent, StandardUnit.Bytes);
+                metrics.addCount(RECORDS_SENT_METRIC, sentRecords.size());
                 int failedRecordCount = requestRecords.size() - sentRecords.size();
                 metrics.addCount(RECORD_ERRORS_METRIC, failedRecordCount);
                 logger.debug("{}:{} Records sent to kinesis stream {}: {}. Failed records: {}",

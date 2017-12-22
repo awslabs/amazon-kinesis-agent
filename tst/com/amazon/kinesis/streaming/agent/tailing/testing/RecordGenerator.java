@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing.testing;
 

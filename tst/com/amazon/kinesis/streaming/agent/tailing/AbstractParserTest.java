@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
@@ -62,7 +62,7 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         flow = (FileFlow<R>) context.flows().get(0);
     }
 
-    private List<R> parseAllRecords(P parser, List<R> records)
+    protected List<R> parseAllRecords(P parser, List<R> records)
             throws IOException {
         return parseRecords(parser, -1, records);
     }
@@ -891,7 +891,7 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         assertFalse(parser.isAtEndOfCurrentFile());
     }
     
-    private P buildParser() {
+    protected P buildParser() {
     	return buildParser(flow, getTestBufferSize());
     }
     

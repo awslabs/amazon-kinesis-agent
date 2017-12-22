@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -92,7 +92,9 @@ public class ApacheLogParser extends BaseLogParser {
         }
         
         if (matcher.groupCount() != fields.size()) {
-            throw new LogParsingException("The parsed fields don't match the given fields");
+            throw new LogParsingException("The parsed fields don't match the given fields. " + 
+                                           matcher.groupCount() + " fields are parsed, " +
+                                           fields.size() + " fields are required");
         }
         
         for (int i = 0; i < fields.size(); i++) {

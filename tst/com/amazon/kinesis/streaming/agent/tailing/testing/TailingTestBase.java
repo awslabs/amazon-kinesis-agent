@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing.testing;
 
@@ -11,7 +11,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -177,7 +179,7 @@ public abstract class TailingTestBase extends TestBase {
         byte[] data = generator.getNewRecord();
         if (sourceFileForTestRecords == null)
             initTestRecord(flow);
-        FirehoseRecord record = new FirehoseRecord(sourceFileForTestRecords, sourceFileForTestRecordsOffset, data);
+        FirehoseRecord record = new FirehoseRecord(sourceFileForTestRecords, sourceFileForTestRecordsOffset, data, data.length);
         sourceFileForTestRecordsOffset += data.length;
         return record;
     }
@@ -289,6 +291,34 @@ public abstract class TailingTestBase extends TestBase {
 
     protected void assertRegexParsedRecordsMatchInputFiles(List<? extends IRecord> records, String pattern, Path... files) throws IOException {
         assertRegexParsedRecordsMatchInputFiles(records, pattern, -1, -1, files);
+    }
+
+    protected void assertAggregationParsedRecordsMatchInputFiles(List<? extends IRecord> records, int recordSizeHint, Path... files) throws IOException {
+        List<String> actualLines = new ArrayList<>();
+        for (IRecord record : records) {
+            // get record data
+            String recordString = ByteBuffers.toString(record.data(), StandardCharsets.UTF_8);
+
+            // validate record size conforms to hint
+            if (recordString.indexOf("\n") != recordString.length() - 1) {
+                assertTrue(record.dataLength() <= recordSizeHint);
+            }
+
+            // de-aggregate record
+            try (BufferedReader bufferedReader = new BufferedReader(new StringReader(recordString))) {
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    actualLines.add(line);
+                }
+            }
+        }
+
+        List<String> expectedLines = new ArrayList<>();
+        for (Path file : files) {
+            expectedLines.addAll(Files.readAllLines(file, StandardCharsets.UTF_8));
+        }
+
+        assertRecordsMatch(actualLines, expectedLines);
     }
 
     protected void assertSkipHeaderLinesRecordsMatchInputFiles(int skippedExpectedRecords, List<? extends IRecord> records, Path... files) throws IOException {

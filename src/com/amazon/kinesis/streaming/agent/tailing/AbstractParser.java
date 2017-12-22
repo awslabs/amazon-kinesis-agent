@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -21,6 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import lombok.Getter;
 
@@ -58,6 +60,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
     FileChannel currentFileChannel;
     private long currentFileChannelOffset = -1;
     private int headerLinesToSkip;
+    private Pattern fileFooterPattern;
 
     @VisibleForTesting
     ByteBuffer currentBuffer;
@@ -172,6 +175,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
                 currentFileChannel = currentFile.getChannel();
                 currentFileChannelOffset = currentFileChannel.position();
                 headerLinesToSkip = currentFileChannelOffset == 0 ? flow.getSkipHeaderLines() : 0;
+                fileFooterPattern = flow.getFileFooterPattern();
                 return true;
             } else {
                 return false;
@@ -465,16 +469,25 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
 
     private R buildRecord(int offset, int length) {
         ByteBuffer data = ByteBuffers.getPartialView(currentBuffer, offset, length);
+        
+        if (fileFooterPattern != null && fileFooterPattern.pattern() != FileFlow.NO_MATCH_REGEX.pattern()) {
+            final Matcher fileFooterMatcher = fileFooterPattern.matcher(data.asCharBuffer());
+            if(fileFooterMatcher.matches()) {
+                stopParsing("End of file reached, file footer pattern matched");
+                return null;
+            }
+        }
+        
         ++recordsFromCurrentBuffer;
         Preconditions.checkNotNull(currentBufferFile);
         
         R record = null;
         try {
-            record = buildRecord(currentBufferFile, convertData(data), toChannelOffset(offset));
+            record = buildRecord(currentBufferFile, convertData(data), toChannelOffset(offset), dataLength(data));
         } catch (DataConversionException e) {
             totalDataProcessingErrors.incrementAndGet();
             logger.warn("Cannot process input data: " + e.getMessage() + ", falling back to raw data.");
-            record = buildRecord(currentBufferFile, data, toChannelOffset(offset));
+            record = buildRecord(currentBufferFile, data, toChannelOffset(offset), dataLength(data));
         } finally {
             totalRecordsParsed.incrementAndGet();
         }
@@ -495,6 +508,10 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         }
         return result;
     }
+    
+    private long dataLength(ByteBuffer data) {
+        return data == null ? 0 : data.remaining();
+    }
 
     private long toChannelOffset(int bufferOffset) {
         Preconditions.checkState(currentBufferStartOffset >= 0, "Buffer start offset (%s) is expected to be non-negative!", currentBufferStartOffset);
@@ -510,7 +527,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
                 toChannelOffset(bufferOffset), reason);
     }
 
-    protected abstract R buildRecord(TrackedFile recordFile, ByteBuffer data, long offset);
+    protected abstract R buildRecord(TrackedFile recordFile, ByteBuffer data, long offset, long originalLength);
     protected abstract int getMaxRecordSize();
 
     @SuppressWarnings("serial")

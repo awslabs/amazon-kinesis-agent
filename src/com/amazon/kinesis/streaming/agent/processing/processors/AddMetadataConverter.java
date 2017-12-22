@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License.
@@ -28,8 +28,6 @@ import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactor
 /**
  * Build record as JSON object with a "metadata" key for arbitrary KV pairs
  *   and "message" key with the raw data
- *
- * Remove leading and trailing spaces for each line
  *
  * Configuration looks like:
  *

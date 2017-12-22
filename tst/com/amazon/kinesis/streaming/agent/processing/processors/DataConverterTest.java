@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.processing.processors;
 
@@ -195,6 +195,23 @@ public class DataConverterTest {
         final String logWithoutPID = "Mar 12 12:01:02 server4 snort: Ports to decode telnet on: 21 23 25 119";
         final String expectedLogWithoutPID = "{\"timestamp\":\"Mar 12 12:01:02\",\"hostname\":\"server4\",\"program\":\"snort\",\"processid\":null,\"message\":\"Ports to decode telnet on: 21 23 25 119\"}\n";
         verifyDataConversion(converter, logWithoutPID.getBytes(), expectedLogWithoutPID.getBytes()); 
+    }
+    
+    @Test
+    public void testAddMetadataConverter() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "ADDMETADATA");
+            put("metadata", new HashMap<String, Object>() {{
+                put("key", "value");
+                put("foo", new HashMap<String, Object>() {{
+                    put("bar", "bas");
+                }});
+            }});
+        }});
+        final IDataConverter converter = new AddMetadataConverter(config);
+        final String dataStr = "This is the data";
+        final String expectedStr = "{\"metadata\":{\"foo\":{\"bar\":\"bas\"},\"key\":\"value\"},\"data\":\"This is the data\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
     }
     
     private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {

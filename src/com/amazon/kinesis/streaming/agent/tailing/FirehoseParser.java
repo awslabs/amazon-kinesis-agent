@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -29,8 +29,8 @@ public class FirehoseParser extends AbstractParser<FirehoseRecord> {
     }
 
     @Override
-    protected synchronized FirehoseRecord buildRecord(TrackedFile recordFile, ByteBuffer data, long offset) {
-        return new FirehoseRecord(recordFile, offset, data);
+    protected synchronized FirehoseRecord buildRecord(TrackedFile recordFile, ByteBuffer data, long offset, long originalLength) {
+        return new FirehoseRecord(recordFile, offset, data, originalLength);
     }
 
     @Override
