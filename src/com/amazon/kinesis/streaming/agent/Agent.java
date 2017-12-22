@@ -58,7 +58,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         String configFile = opts.getConfigFile();
         AgentConfiguration config = tryReadConfigurationFile(Paths.get(opts.getConfigFile()));
         Path logFile = opts.getLogFile() != null ? Paths.get(opts.getLogFile()) : (config != null ? config.logFile() : null);
-        String logLevel = opts.getLogLevel() != null ? opts.getLogLevel() : (config != null ? config.logLevel() : null);
+        String logLevel = config != null ? config.logLevel() : (opts.getLogLevel() != null ? opts.getLogLevel() : null );
         int logMaxBackupFileIndex = (config != null ? config.logMaxBackupIndex() : -1);
         long logMaxFileSize = (config != null ? config.logMaxFileSize() : -1L);
         Logging.initialize(logFile, logLevel, logMaxBackupFileIndex, logMaxFileSize);

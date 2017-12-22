@@ -28,6 +28,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.9.5</version>
+        </dependency>
+        <dependency>
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-core</artifactId>
           <version>${aws-java-sdk.version}</version>
