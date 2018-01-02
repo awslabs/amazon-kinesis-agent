@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-
+import org.slf4j.Logger;
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -47,6 +47,7 @@ public class LogToJSONDataConverter implements IDataConverter {
     private List<String> fields;
     private ILogParser logParser;
     private IJSONPrinter jsonProducer;
+    private final Logger LOGGER=Logging.getLogger(getClass());
     
     public LogToJSONDataConverter(Configuration config) {
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
@@ -70,6 +71,7 @@ public class LogToJSONDataConverter implements IDataConverter {
         try {
             recordMap = logParser.parseLogRecord(dataStr, fields);
         } catch (LogParsingException e) {
+            LOGGER.debug(e.getMessage() + ".Failed log entry -" + dataStr);
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
             Logging.getLogger(getClass()).debug("Getting exception while parsing record: [" + dataStr
