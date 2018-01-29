@@ -470,7 +470,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
     private R buildRecord(int offset, int length) {
         ByteBuffer data = ByteBuffers.getPartialView(currentBuffer, offset, length);
         
-        if (fileFooterPattern != null && fileFooterPattern.pattern() != FileFlow.NO_MATCH_REGEX.pattern()) {
+        if (fileFooterPattern != null) {
             final Matcher fileFooterMatcher = fileFooterPattern.matcher(data.asCharBuffer());
             if(fileFooterMatcher.matches()) {
                 stopParsing("End of file reached, file footer pattern matched");
