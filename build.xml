@@ -14,7 +14,7 @@
 
     <path id="classpath">
         <fileset dir="${build.dependencies}" includes="**/*.jar" />
-        <fileset dir="/usr/share/java" includes="**/*.jar" />
+        <fileset dir="${java.home}" includes="**/*.jar" />
     </path>
 
     <target name="get-java-version">
