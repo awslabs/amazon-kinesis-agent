@@ -59,8 +59,6 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public static final String DEFAULT_TRUNCATED_RECORD_TERMINATOR = String.valueOf(Constants.NEW_LINE);
     public static final String CONVERSION_OPTION_KEY = "dataProcessingOptions";
     public static final String FILE_FOOTER_PATTERN = "fileFooterPattern"; //If a line matches this pattern it stops processing the file
-    
-    public static final Pattern NO_MATCH_REGEX = Pattern.compile("^\\b$"); //https://stackoverflow.com/questions/1723182/a-regex-that-will-never-be-matched-by-anything
 
     @Getter protected final AgentContext agentContext;
     @Getter protected final SourceFile sourceFile;
@@ -113,7 +111,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         
         String footerPattern = readString(FILE_FOOTER_PATTERN, null);
         
-        fileFooterPattern = Strings.isNullOrEmpty(footerPattern)? NO_MATCH_REGEX : Pattern.compile(footerPattern);
+        fileFooterPattern = Strings.isNullOrEmpty(footerPattern)? null : Pattern.compile(footerPattern);
 
         String terminatorConfig = readString("truncatedRecordTerminator", DEFAULT_TRUNCATED_RECORD_TERMINATOR);
         if (terminatorConfig == null || terminatorConfig.getBytes(StandardCharsets.UTF_8).length >= getMaxRecordSizeBytes()) {
