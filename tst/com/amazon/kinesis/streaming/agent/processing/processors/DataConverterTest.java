@@ -27,7 +27,11 @@ public class DataConverterTest {
     
     @Test
     public void testSingleLineDataConverter() throws Exception {
-        final IDataConverter converter = new SingleLineDataConverter();
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "SINGLELINE");
+            put("parseOptions", Arrays.asList("ESCAPE_NEW_LINE"));
+        }});
+        final IDataConverter converter = new SingleLineDataConverter(config);
         final String dataStr = "{\n" +
                                "   \"a\": {\n" +
                                "           \"b\": 1,\n" +
@@ -38,7 +42,7 @@ public class DataConverterTest {
                                "   \"g\": 2\n" +
                                "     " +
                                "}\n";
-        final String expectedStr = "{\"a\": {\"b\": 1,\"c\": null,\"d\": true},\"e\": \"f\",\"g\": 2}\n";
+        final String expectedStr = "{\\\\n\"a\": {\\\\n\"b\": 1,\\\\n\"c\": null,\\\\n\"d\": true\\\\n},\\\\n\"e\": \"f\",\\\\n\"g\": 2\\\\n}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
     }
     

@@ -532,11 +532,14 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         final String testfileName = "pretty_printed_json";
         final String expectedResultFileName = "parsed_singleline_json";
         final String pattern = "    \\{";
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "SINGLELINE");
+        }});
         flow = spy(flow);
         // Skip the first two lines
         when(flow.getSkipHeaderLines()).thenReturn(2);
         when(flow.getRecordSplitter()).thenReturn(new RegexSplitter(pattern));
-        when(flow.getDataConverter()).thenReturn(new AgentDataConverterChain(new SingleLineDataConverter()));
+        when(flow.getDataConverter()).thenReturn(new AgentDataConverterChain(new SingleLineDataConverter(config)));
         Path testFile = FileSystems.getDefault().getPath(this.getClass().getResource(testfileName).getFile());
         Path resultFile = FileSystems.getDefault().getPath(this.getClass().getResource(expectedResultFileName).getFile());
         P parser = buildParser();

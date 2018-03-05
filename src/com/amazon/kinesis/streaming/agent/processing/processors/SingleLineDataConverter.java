@@ -43,29 +43,29 @@ public class SingleLineDataConverter implements IDataConverter {
     
     private final boolean noTrim;
     private final boolean escapeNewLine;
-
+    
     public SingleLineDataConverter(Configuration config) {
         List<String> parseOptions = config.readList("parseOptions", String.class, new ArrayList<String>());
         noTrim = parseOptions.contains("NO_TRIM") ? true : false;
         escapeNewLine = parseOptions.contains("ESCAPE_NEW_LINE") ? true : false;
     }
-
+    
     @Override
     public ByteBuffer convert(ByteBuffer data) throws DataConversionException {
         String dataStr = ByteBuffers.toString(data, StandardCharsets.UTF_8);
         String[] lines = dataStr.split(NEW_LINE);
-
+        
         if (!noTrim) {
             for (int i = 0; i < lines.length; i++) {
                 lines[i] = lines[i].trim();
             }
         }
-
+        
         String delimiter = escapeNewLine ? "\\\\n" : "";
         String dataRes = StringUtils.join(lines, delimiter) + NEW_LINE;
         return ByteBuffer.wrap(dataRes.getBytes(StandardCharsets.UTF_8));
     }
-
+    
     @Override
     public String toString() {
         return getClass().getSimpleName();
