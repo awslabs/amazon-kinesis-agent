@@ -28,12 +28,18 @@ INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
 # This script is in /etc/rc.d/init.d/ and the executable is in /usr/bin
 BASEDIR=${BASEDIR%/}
 DAEMON_EXEC=$BASEDIR/usr/bin/start-$DAEMON_NAME
-LOGLEVEL=${LOGLEVEL:-INFO}
+LOG_CONFIG=${LOG_CONFIG:-/etc/aws-kinesis/log4j.xml}
 ARGS=${ARGS:-}
 RETVAL=0
 
 # load any configs/environment from /etc/default/<name>
 [ -e /etc/default/$DAEMON_NAME ] && . /etc/default/$DAEMON_NAME
+
+# If the log4j.xml file exists (which it does by default if the 'setup' script
+# installed these files), then we add a specific java argument to the JVM args
+# - otherwise the default log4j file is built into the JAR.
+[ -e ${LOG_CONFIG} ] && \
+        export JVM_ARGS="-Dlog4j.configuration=file://${LOG_CONFIG} ${JVM_ARGS}"
 
 # Export the settings
 do_start () {
@@ -47,9 +53,7 @@ do_start () {
           --make-pidfile \
           --pidfile $PIDFILE \
           --chuid $AGENT_USER \
-          --startas $DAEMON_EXEC -- \
-                -L $LOGLEVEL \
-                $ARGS
+          --startas $DAEMON_EXEC -- $ARGS
 }
 
 do_stop () {

@@ -56,6 +56,12 @@ DAEMON_EXEC=$BASEDIR/usr/bin/start-$DAEMON_NAME
 SYSCONFIG_FILE=/etc/sysconfig/$DAEMON_NAME
 RETVAL=0
 
+# If the log4j.xml file exists (which it does by default if the 'setup' script
+# installed these files), then we add a specific java argument to the JVM args
+# - otherwise the default log4j file is built into the JAR.
+[ -e ${LOG_CONFIG} ] && \
+        export JVM_ARGS="-Dlog4j.configuration=file://${LOG_CONFIG} ${JVM_ARGS}"
+
 do_start () {
   # if lock file is there or if PID file is there and process is alive, return
   if [[ -e $PIDFILE ]] && checkpid `cat $PIDFILE`; then
@@ -67,7 +73,6 @@ do_start () {
   export AWS_ACCESS_KEY_ID
   export AWS_SECRET_ACCESS_KEY
   export AWS_DEFAULT_REGION
-  export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
   
   DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 

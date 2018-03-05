@@ -52,6 +52,18 @@ import com.google.common.util.concurrent.MoreExecutors;
 public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     private static volatile boolean dontShutdownOnExit = false;
 
+    private static final String ACTIVE_SENDING_THREADS = "ActiveSendingThreads";
+    private static final String AGENT = "Agent";
+    private static final String MAX_SENDING_THREADS = "MaxSendingThreads";
+    private static final String MAX_SENDING_THREADS_ALIVE = "MaxSendingThreadsAlive";
+    private static final String SENDING_THREADS_ALIVE = "SendingThreadsAlive";
+    private static final String TOTAL_BYTES_BEHIND = "TotalBytesBehind";
+    private static final String TOTAL_BYTES_CONSUMED = "TotalBytesConsumed";
+    private static final String TOTAL_FILES_BEHIND = "TotalFilesBehind";
+    private static final String TOTAL_RECORDS_PARSED = "TotalRecordsParsed";
+    private static final String TOTAL_RECORDS_SENT = "TotalRecordsSent";
+    private static final String UP_TIME_MILLIS = "UpTimeMillis";
+
     public static void main(String[] args) throws Exception {
         AgentOptions opts = AgentOptions.parse(args);
         String configFile = opts.getConfigFile();
@@ -363,14 +375,14 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             //       If it's modified the scripts need to be modified as well.
             logger.info("{}: Progress: {} records parsed ({} bytes), and {} records sent successfully to destinations. Uptime: {}ms",
                     serviceName(),
-                    metrics.get("Agent").get("TotalRecordsParsed"),
-                    metrics.get("Agent").get("TotalBytesConsumed"),
-                    metrics.get("Agent").get("TotalRecordsSent"),
+                    metrics.get(AGENT).get(TOTAL_RECORDS_PARSED),
+                    metrics.get(AGENT).get(TOTAL_BYTES_CONSUMED),
+                    metrics.get(AGENT).get(TOTAL_RECORDS_SENT),
                     uptime.elapsed(TimeUnit.MILLISECONDS));
 
             // Log a message if we're far behind in tailing the input
-            long bytesBehind = (long) metrics.get("Agent").get("TotalBytesBehind");
-            int filesBehind = (int) metrics.get("Agent").get("TotalFilesBehind");
+            long bytesBehind = (long) metrics.get(AGENT).get(TOTAL_BYTES_BEHIND);
+            int filesBehind = (int) metrics.get(AGENT).get(TOTAL_FILES_BEHIND);
             // NOTE: This log line is parsed by scripts in support/benchmarking.
             //       If it's modified the scripts need to be modified as well.
             String msg = String.format("%s: Tailing is %02f MB (%d bytes) behind.", serviceName(),
@@ -397,7 +409,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 metrics.put(flow.getTailer().getId(), flow.getTailer().getMetrics());
             }
         }
-        metrics.put("Agent", globalMetrics(metrics));
+        metrics.put(AGENT, globalMetrics(metrics));
         return metrics;
     }
 
@@ -416,16 +428,16 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             recordsParsed += Metrics.getMetric(tailerMetrics.getValue(), Metrics.PARSER_TOTAL_RECORDS_PARSED_METRIC, zero).get();
             recordsSent += Metrics.getMetric(tailerMetrics.getValue(), Metrics.SENDER_TOTAL_RECORDS_SENT_METRIC, zero).get();
         }
-        globalMetrics.put("TotalBytesBehind", bytesBehind);
-        globalMetrics.put("TotalFilesBehind", filesBehind);
-        globalMetrics.put("TotalBytesConsumed", bytesConsumed);
-        globalMetrics.put("TotalRecordsParsed", recordsParsed);
-        globalMetrics.put("TotalRecordsSent", recordsSent);
-        globalMetrics.put("MaxSendingThreads", agentContext.maxSendingThreads());
-        globalMetrics.put("UpTimeMillis", uptime.elapsed(TimeUnit.MILLISECONDS));
-        globalMetrics.put("ActiveSendingThreads", sendingExecutor.getActiveCount());
-        globalMetrics.put("SendingThreadsAlive", sendingExecutor.getPoolSize());
-        globalMetrics.put("MaxSendingThreadsAlive", sendingExecutor.getLargestPoolSize());
+        globalMetrics.put(TOTAL_BYTES_BEHIND, bytesBehind);
+        globalMetrics.put(TOTAL_FILES_BEHIND, filesBehind);
+        globalMetrics.put(TOTAL_BYTES_CONSUMED, bytesConsumed);
+        globalMetrics.put(TOTAL_RECORDS_PARSED, recordsParsed);
+        globalMetrics.put(TOTAL_RECORDS_SENT, recordsSent);
+        globalMetrics.put(MAX_SENDING_THREADS, agentContext.maxSendingThreads());
+        globalMetrics.put(UP_TIME_MILLIS, uptime.elapsed(TimeUnit.MILLISECONDS));
+        globalMetrics.put(ACTIVE_SENDING_THREADS, sendingExecutor.getActiveCount());
+        globalMetrics.put(SENDING_THREADS_ALIVE, sendingExecutor.getPoolSize());
+        globalMetrics.put(MAX_SENDING_THREADS_ALIVE, sendingExecutor.getLargestPoolSize());
         return globalMetrics;
     }
 

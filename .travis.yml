@@ -1,10 +1,13 @@
 language: java
 sudo: required
+cache:
+  - .m2/repository
+env:
+  - M2_HOME=$(pwd)/.m2
 install:
   - true
 before_deploy:
-  - mvn clean
-  - sudo ./setup --build
+  - mvn -s .m2/conf/settings.xml package -DskipTests
   - tar -zcvf /tmp/amazon-kinesis-agent-${TRAVIS_TAG}.tgz .
 deploy:
   - provider: releases

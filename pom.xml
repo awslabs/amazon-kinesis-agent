@@ -6,8 +6,11 @@
     <artifactId>amazon-kinesis-agent</artifactId>
     <packaging>jar</packaging>
     <name>Amazon Kinesis Agent</name>
-    <version>1.1</version>
-    <description>Amazon Kinesis Agent runs on customer hosts and continuously monitors a set of log files and sends new data to the Amazon Kinesis Stream and Amazon Kinesis Firehose services in near-real-time.</description>
+    <version>1.2</version>
+    <description>Amazon Kinesis Agent runs on customer hosts and continuously
+            monitors a set of log files and sends new data to the Amazon
+            Kinesis Stream and Amazon Kinesis Firehose services in
+            near-real-time.</description>
     <url>https://aws.amazon.com/kinesis</url>
 
     <scm>
@@ -24,19 +27,26 @@
 
     <properties>
         <aws-java-sdk.version>1.11.28</aws-java-sdk.version>
+        <license-maven-plugin.version>1.13</license-maven-plugin.version>
+        <maven-assembly-plugin.version>3.1.0</maven-assembly-plugin.version>
+        <maven-compiler-plugin.version>3.6.0</maven-compiler-plugin.version>
+        <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
+        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.11</version>
+          <groupId>org.testng</groupId>
+          <artifactId>testng</artifactId>
+          <version>6.14.3</version>
+          <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.5</version>
-        </dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-all</artifactId>
+          <version>1.10.19</version>
+          <scope>test</scope>
+       </dependency>
         <dependency>
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-core</artifactId>
@@ -194,28 +204,46 @@
       <directory>target</directory>
       <outputDirectory>target/classes</outputDirectory>
       <finalName>${project.artifactId}-${project.version}</finalName>
-      <sourceDirectory>src</sourceDirectory>
-      <scriptSourceDirectory>src</scriptSourceDirectory>
-      <pluginManagement>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.2</version>
-            <configuration>
-              <source>1.7</source>
-              <target>1.7</target>
-              <encoding>UTF-8</encoding>
-            </configuration>
-          </plugin>
-        </plugins>
-      </pluginManagement>
+
+      <testResources>
+        <testResource>
+            <directory>${project.basedir}/src/test/resources</directory>
+        </testResource>
+      </testResources>
 
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+          <configuration>
+            <source>1.7</source>
+            <target>1.7</target>
+            <encoding>UTF-8</encoding>
+            <compilerArgs>
+              <args>-Xlint:all</args>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${maven-source-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-gpg-plugin</artifactId>
-          <version>1.5</version>
+          <version>${maven-gpg-plugin.version}</version>
           <executions>
             <execution>
               <id>sign-artifacts</id>
@@ -226,6 +254,34 @@
             </execution>
           </executions>
         </plugin>
+
+        <!-- Maven Assembly Plugin -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${maven-assembly-plugin.version}</version>
+          <configuration>
+            <descriptorRefs>
+              <descriptorRef>jar-with-dependencies</descriptorRef>
+            </descriptorRefs>
+            <archive>
+              <manifest>
+                <mainClass>com.amazon.kinesis.streaming.agent.Agent</mainClass>
+              </manifest>
+            </archive>
+
+          </configuration>
+          <executions>
+            <execution>
+              <id>make-assembly</id>
+              <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            </execution>
+          </executions>
+        </plugin>
+
       </plugins>
     </build>
 

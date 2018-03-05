@@ -31,14 +31,14 @@ public class AgentContextTest {
 
     @Test
     public void testVersion() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
         assertNotNull(context.version());
         assertNotEquals(context.version(), "x.x");
     }
 
     @Test
     public void testDefaultUserAgent() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
         context = spy(context);
         when(context.version()).thenReturn("0.1");
         ClientConfiguration config = new ClientConfiguration();
@@ -48,7 +48,7 @@ public class AgentContextTest {
     
     @Test
     public void testInstanceTag() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
         context = spy(context);
         assertNotNull(context.getInstanceTag());
     }
@@ -72,7 +72,7 @@ public class AgentContextTest {
 
     @Test
     public void testGetAWSClientConfiguration() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
         context = spy(context);
         when(context.version()).thenReturn("0.1");
         ClientConfiguration config = context.getAwsClientConfiguration();
@@ -87,7 +87,7 @@ public class AgentContextTest {
 
     @Test
     public void testFlows() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
 
         assertEquals(context.flows().size(), 2);
         assertEquals(context.flows().get(0).getDestination(), "fh1");

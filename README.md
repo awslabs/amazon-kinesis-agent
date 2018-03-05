@@ -89,19 +89,18 @@ For other distributions or platforms, you can build the Java project with the fo
 sudo ./setup --build
 ```
 
-or by using Ant target as you would build any Java program: 
+or by using Maven target as you would build any Java program: 
 
 ```sh
-ant [-Dbuild.dependencies=DEPENDENCY_DIR]
+mvn package
 ```
 
-If you use Ant command, you need to download all the dependencies listed in pom.xml before building the Java program. **DEPENDENCY_DIR** is the directory where you download and store the dependencies. 
 By default, the Amazon Kinesis Agent reads the configuration file from /etc/aws-kinesis/agent.json. You need to create such a file if it does not already exist. A sample configuration can be found at ./configuration/release/aws-kinesis-agent.json
 
 To start the program, use the following command:
 
 ```sh
-java -cp CLASSPATH "com.amazon.kinesis.streaming.agent.Agent"
+java -jar target/amazon-kinesis-agent-*-jar-with-dependencies.jar
 ```
 
 **CLASSPATH** is the classpath to your dependencies and the target JAR file that you built from the step above.
@@ -123,5 +122,5 @@ java -cp CLASSPATH "com.amazon.kinesis.streaming.agent.Agent"
 [kinesis-firehose]: https://aws.amazon.com/kinesis/firehose/
 [kinesis-stream-create]: http://docs.aws.amazon.com/streams/latest/dev/kinesis-using-sdk-java-create-stream.html
 [kinesis-firehose-create]: http://docs.aws.amazon.com/firehose/latest/dev/basic-create.html
-[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/streams/latest/dev/writing-with-agents.html
+[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/kinesis/latest/dev/writing-with-agents.html
 [kinesis-firehose-agent-guide]: http://docs.aws.amazon.com/firehose/latest/dev/writing-with-agents.html
