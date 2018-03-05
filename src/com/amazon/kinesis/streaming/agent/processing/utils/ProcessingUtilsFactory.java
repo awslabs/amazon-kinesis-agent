@@ -122,7 +122,7 @@ public class ProcessingUtilsFactory {
             case ADDEC2METADATA:
                 return new AddEC2MetadataConverter(config);
             case SINGLELINE:
-                return new SingleLineDataConverter();
+                return new SingleLineDataConverter(config);
             case CSVTOJSON:
                 return new CSVToJSONDataConverter(config);
             case LOGTOJSON:
