@@ -425,7 +425,7 @@ public abstract class TailingTestBase extends TestBase {
             String recordPattern;
             String recordData;
             while((recordPattern = scanner.findWithinHorizon(pattern, 0)) != null){
-                if (scanner.hasNext() && (recordData = scanner.next()) != null) {
+                if (scanner.hasNext() && (recordData = scanner.next()) != null && recordData.endsWith("\n")) {
                     records.add(recordPattern + recordData);
                 }
             }

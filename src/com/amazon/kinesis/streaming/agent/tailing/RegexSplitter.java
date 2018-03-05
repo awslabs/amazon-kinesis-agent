@@ -73,7 +73,9 @@ public class RegexSplitter implements ISplitter {
         }
         
         // We've scanned to the end and there is only one complete record in the buffer, set the position to the end
-        if (!firstLine && buffer.limit() < buffer.capacity()) {
+        if (!firstLine && buffer.limit() < buffer.capacity() 
+                && buffer.position() > 0
+                && buffer.get(buffer.position() - 1) == SingleLineSplitter.LINE_DELIMITER) {
             return buffer.position();
         }
         

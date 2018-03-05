@@ -21,13 +21,17 @@ import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -450,6 +454,18 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         Path testFile = testFiles.createTempFile();
         RecordGenerator generator = new RecordGenerator(true);
         int expectedRecordCount = generator.appendDataToFile(testFile, getTestBytes());
+        
+        // append a record that's not ending with new line. this record should be ignored
+        FileChannel channel = FileChannel.open(testFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+        String incompleteRecord = 
+                String.format("%s\t%010d",
+                        SimpleDateFormat.getDateTimeInstance().format(new Date()),
+                        TestUtils.uniqueCounter()) + 
+                generator.getRecordTerminator() + 
+                "aaaaa";
+        channel.write(ByteBuffer.wrap(incompleteRecord.getBytes()));
+        channel.force(true);
+        
         P parser = buildParser();
         parser = spy(parser);
         TrackedFile file = new TrackedFile(flow, testFile);
