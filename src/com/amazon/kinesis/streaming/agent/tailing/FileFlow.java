@@ -111,7 +111,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         
         String footerPattern = readString(FILE_FOOTER_PATTERN, null);
         
-        fileFooterPattern = Strings.isNullOrEmpty(footerPattern)? null : Pattern.compile(footerPattern);
+        fileFooterPattern = Strings.isNullOrEmpty(footerPattern)? null : Pattern.compile(footerPattern, Pattern.MULTILINE);
 
         String terminatorConfig = readString("truncatedRecordTerminator", DEFAULT_TRUNCATED_RECORD_TERMINATOR);
         if (terminatorConfig == null || terminatorConfig.getBytes(StandardCharsets.UTF_8).length >= getMaxRecordSizeBytes()) {
