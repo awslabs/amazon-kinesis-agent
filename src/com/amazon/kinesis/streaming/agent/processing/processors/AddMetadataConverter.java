@@ -15,8 +15,12 @@ package com.amazon.kinesis.streaming.agent.processing.processors;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.TimeZone;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -33,6 +37,7 @@ import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactor
  *
  * { 
  *   "optionName": "ADDMETADATA",
+ *   "timestamp": "true/false",
  *   "metadata": {
  *     "key": "value",
  *     "foo": {
@@ -47,10 +52,12 @@ import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactor
 public class AddMetadataConverter implements IDataConverter {
 
     private Object metadata;
+    private Boolean timestamp;
     private final IJSONPrinter jsonProducer;
 
     public AddMetadataConverter(Configuration config) {
       metadata = config.getConfigMap().get("metadata");
+      timestamp = new Boolean((String) config.getConfigMap().get("timestamp"));
       jsonProducer = ProcessingUtilsFactory.getPrinter(config);
     }
 
@@ -62,6 +69,13 @@ public class AddMetadataConverter implements IDataConverter {
 
         if (dataStr.endsWith(NEW_LINE)) {
             dataStr = dataStr.substring(0, (dataStr.length() - NEW_LINE.length()));
+        }
+
+        if (timestamp.booleanValue()) {
+            TimeZone tz = TimeZone.getTimeZone("UTC");
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            dateFormat.setTimeZone(tz);
+            recordMap.put("ts", dateFormat.format(new Date()));
         }
 
         recordMap.put("metadata", metadata);
