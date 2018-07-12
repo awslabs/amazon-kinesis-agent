@@ -35,7 +35,7 @@
 
     <target name="compile" depends="check-java-version, init">
         <mkdir dir="${build.private}" />
-        <javac source="1.7" target="1.7" includeantruntime="false" classpathref="classpath" srcdir="${src.dir}" destdir="${build.private}" />
+        <javac source="1.7" target="1.7" includeantruntime="false" classpathref="classpath" srcdir="${src.dir}" destdir="${build.private}" debug="true" />
         <property name="src.agent.path" value="com/amazon/kinesis/streaming/agent" />
         <copy todir="${build.private}/${src.agent.path}" failonerror="true">
             <fileset dir="${src.dir}/${src.agent.path}" excludes="**/*.java" />
