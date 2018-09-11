@@ -312,7 +312,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         Preconditions.checkState(currentFileChannelOffset == -1 || currentFileChannelOffset == startOffset,
                 "%s: Channel expected to be at offset %s but was at offset %s.", name, currentFileChannelOffset, startOffset);
         currentBufferFile = currentFile;
-        currentBufferStartOffset = currentFileChannel.position() - (currentBufferSavedReadPosition != -1 ? currentBufferSavedReadPosition : currentBuffer.position());
+        currentBufferStartOffset = currentFileChannel.position() - currentBuffer.position();
         int bytes = currentFileChannel.read(currentBuffer);
         currentFileChannelOffset = currentFileChannel.position();
         prepareCurrentBufferForReading();
