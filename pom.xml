@@ -6,7 +6,7 @@
     <artifactId>amazon-kinesis-agent</artifactId>
     <packaging>jar</packaging>
     <name>Amazon Kinesis Agent</name>
-    <version>1.2</version>
+    <version>1.2-SNAPSHOT</version>
     <description>Amazon Kinesis Agent runs on customer hosts and continuously
             monitors a set of log files and sends new data to the Amazon
             Kinesis Stream and Amazon Kinesis Firehose services in
