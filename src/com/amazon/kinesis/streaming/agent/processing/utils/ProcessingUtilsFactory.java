@@ -27,6 +27,7 @@ import com.amazon.kinesis.streaming.agent.processing.processors.AddMetadataConve
 import com.amazon.kinesis.streaming.agent.processing.processors.BracketsDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.CSVToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.LogToJSONDataConverter;
+import com.amazon.kinesis.streaming.agent.processing.processors.PluggableDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.SingleLineDataConverter;
 
 /**
@@ -47,7 +48,8 @@ public class ProcessingUtilsFactory {
         SINGLELINE,
         CSVTOJSON,
         LOGTOJSON,
-        ADDBRACKETS
+        ADDBRACKETS,
+        USINGPLUGGIN,
     }
     
     public static enum LogFormat {
@@ -129,6 +131,8 @@ public class ProcessingUtilsFactory {
                 return new LogToJSONDataConverter(config);
             case ADDBRACKETS:
                 return new BracketsDataConverter();
+            case USINGPLUGGIN:
+                return new PluggableDataConverter(config);
             default:
                 throw new ConfigurationException(
                         "Specified option is not implemented yet: " + option);
