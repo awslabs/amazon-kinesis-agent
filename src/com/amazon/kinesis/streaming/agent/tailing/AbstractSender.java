@@ -14,8 +14,7 @@
 package com.amazon.kinesis.streaming.agent.tailing;
 
 import org.slf4j.Logger;
-
-import com.amazon.kinesis.streaming.agent.Logging;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base implementation for an {@link ISender}.
@@ -26,7 +25,7 @@ public abstract class AbstractSender<R extends IRecord> implements ISender<R> {
     protected final Logger logger;
 
     public AbstractSender() {
-        this.logger = Logging.getLogger(getClass());
+        this.logger = LoggerFactory.getLogger(getClass());
     }
 
     @Override

@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
 import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
+import org.slf4j.LoggerFactory;
 
 /**
  * Convert a CSV record into JSON record.
@@ -74,7 +74,7 @@ public class CSVToJSONDataConverter implements IDataConverter {
             try {
                 recordMap.put(fieldNames.get(i), columns[i]);
             } catch (ArrayIndexOutOfBoundsException e) {
-                Logging.getLogger(getClass()).debug("Null field in CSV detected");
+                LoggerFactory.getLogger(getClass()).debug("Null field in CSV detected");
                 recordMap.put(fieldNames.get(i), null);
             } catch (Exception e) {
                 throw new DataConversionException("Unable to create the column map", e);

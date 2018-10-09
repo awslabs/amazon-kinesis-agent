@@ -27,9 +27,9 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow.InitialPosition;
@@ -92,7 +92,7 @@ public abstract class AbstractParser<R extends IRecord> implements IParser<R> {
         this.recordSplitter = this.flow.getRecordSplitter();
         this.dataConverter = this.flow.getDataConverter();
         this.bufferSize = bufferSize;
-        this.logger = Logging.getLogger(getClass());
+        this.logger = LoggerFactory.getLogger(getClass());
     }
 
     @Override

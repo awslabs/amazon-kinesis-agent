@@ -34,9 +34,9 @@ import lombok.Cleanup;
 import lombok.ToString;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow;
 import com.amazon.kinesis.streaming.agent.tailing.FileId;
 import com.amazon.kinesis.streaming.agent.tailing.TrackedFile;
@@ -49,7 +49,7 @@ import com.google.common.base.Preconditions;
  */
 @ToString(exclude={"agentContext", "connection"})
 public class SQLiteFileCheckpointStore implements FileCheckpointStore {
-    private static final Logger LOGGER = Logging.getLogger(SQLiteFileCheckpointStore.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SQLiteFileCheckpointStore.class);
     private static final int DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS = 5;
     private static final int DEFAULT_DB_QUERY_TIMEOUT_SECONDS = 30;
 

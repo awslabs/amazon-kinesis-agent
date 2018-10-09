@@ -196,7 +196,8 @@ do_install () {
   install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
-  
+  install -m644 ./support/log4j.xml ${config_dir}
+
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \
   useradd -c "Streaming Data Agent" -r $agent_user_name

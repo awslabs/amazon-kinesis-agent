@@ -14,6 +14,7 @@
 package com.amazon.kinesis.streaming.agent;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazonaws.AmazonClientException;
@@ -23,7 +24,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.google.common.base.Strings;
 
 public class AgentAWSCredentialsProvider implements AWSCredentialsProvider {
-    private static final Logger LOGGER = Logging.getLogger(AgentAWSCredentialsProvider.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentAWSCredentialsProvider.class);
     private final AgentConfiguration config;
     
     public AgentAWSCredentialsProvider(AgentConfiguration config) {

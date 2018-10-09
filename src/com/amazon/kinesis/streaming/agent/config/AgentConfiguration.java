@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.ClientConfiguration;
 
 public class AgentConfiguration extends Configuration {
-    static final String[] VALID_LOG_LEVELS = { "TRACE", "DEBUG", "INFO", "WARN", "ERROR" };
     static final long DEFAULT_SENDING_THREADS_KEEPALIVE_MILLIS = 60_000L;
     static final int DEFAULT_SENDING_THREADS_MAX_QUEUE_SIZE = 100;
     static final String DEFAULT_CHECKPOINTS_FILE = "/var/run/aws-kinesis-agent/checkpoints";
@@ -49,10 +48,6 @@ public class AgentConfiguration extends Configuration {
     public static final String ASSUME_ROLE_EXTERNAL_ID = "assumeRoleExternalId";
     public static final String SHUTDOWN_TIMEOUT_MILLIS_KEY = "shutdownTimeoutMillis";
     public static final String ENDPOINT_KEY = "endpoint";
-    static final String LOG_FILE_KEY = "log.file";
-    static final String LOG_LEVEL_KEY = "log.level";
-    static final String LOG_MAX_BACKUP_INDEX_KEY = "log.maxBackupIndex";
-    static final String LOG_MAX_FILE_SIZE_KEY = "log.maxFileSize";
 
     public AgentConfiguration(Map<String, Object> config) {
         super(config);
@@ -72,22 +67,6 @@ public class AgentConfiguration extends Configuration {
 
     public AgentConfiguration(Configuration config) {
         this(config.getConfigMap());
-    }
-
-    public String logLevel() {
-        return readString(LOG_LEVEL_KEY, null);
-    }
-
-    public Path logFile() {
-        return readPath(LOG_FILE_KEY, null);
-    }
-
-    public int logMaxBackupIndex() {
-        return readInteger(LOG_MAX_BACKUP_INDEX_KEY, -1);
-    }
-
-    public long logMaxFileSize() {
-        return readLong(LOG_MAX_FILE_SIZE_KEY, -1L);
     }
 
     public boolean logEmitMetrics() {
