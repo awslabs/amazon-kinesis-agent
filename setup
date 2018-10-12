@@ -15,9 +15,13 @@ fi
 # Attempt to load up the /etc/lsb-release file to determine our OS. If none is
 # found, we default our settings to RHEL/Amazon Linux as the original behavior
 # of this script intended.
-dist=RedHat
-[[ -f /etc/lsb-release ]] && dist=Ubuntu
-[[ -f /etc/debian_version ]] && dist=Debian
+if [[ -f /etc/lsb-release ]]; then
+  dist=Ubuntu
+elif [[ -f /etc/debian_version ]]; then
+  dist=Debian
+else
+  dist=Redhat
+fi
 
 # Tell the user what OS we detected
 echo "Detected OS Distro: ${dist}"
