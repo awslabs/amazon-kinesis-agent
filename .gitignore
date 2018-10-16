@@ -2,6 +2,7 @@
 target/
 pom.xml.*
 release.properties
+.m2/repository
 
 # IntelliJ Idea
 .idea/

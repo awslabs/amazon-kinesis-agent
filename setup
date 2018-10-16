@@ -6,6 +6,12 @@ set -e
 # If we're debugging, be really loudly verbose
 [[ ! -z $DEBUG ]] && set -x
 
+# This script only works if Maven is installed.. test for it.
+if [[ ! -e $(which mvn) ]]; then
+  echo 'You must have maven2 and a JDK installed.'
+  exit 1
+fi
+
 # Attempt to load up the /etc/lsb-release file to determine our OS. If none is
 # found, we default our settings to RHEL/Amazon Linux as the original behavior
 # of this script intended.
@@ -30,15 +36,12 @@ fi
 # certain things
 case "$dist" in
   Ubuntu)
-    install_package="apt-get install -y"
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
   Debian)
-    install_package="apt-get install -y"
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
   *)
-    install_package="yum install -y"
     init_dir=/etc/rc.d/init.d
     sysconfig_dir=/etc/sysconfig ;;
 esac
@@ -50,7 +53,6 @@ cron_dir=/etc/cron.d
 config_dir=/etc/aws-kinesis
 config_flow_dir=${config_dir}/agent.d
 jar_dir=/usr/share/${daemon_name}/lib
-dependencies_dir=./dependencies
 log_dir=/var/log/${daemon_name}
 state_dir=/var/run/${daemon_name}
 agent_service=${init_dir}/${daemon_name}
@@ -66,74 +68,6 @@ usage() {
 fail() {
   echo $1 >&2
   exit 1
-}
-
-download_jar() {
-  group_id=$1
-  artifact_id=$2
-  version=$3
-  prefix="http://search.maven.org/remotecontent?filepath="
-  path=${group_id//.//}
-  jar_name=$artifact_id-$version.jar
-  tmp_dest=$(mktemp -u)
-  jar_dest=$dependencies_dir/$jar_name
-  url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
-  
-  # file exists? then don't download it!
-  [[ -f ${jar_dest} ]] && return
-
-  # download the file to a temp location, then if move it here if successful
-  echo "Downloading $jar_name ($url)..."
-  wget -q -P ${dependencies_dir} $url -O ${tmp_dest} && \
-    mv ${tmp_dest} ${jar_dest}
-
-  # Purge our temp file regardless of the status here
-  rm -f ${tmp_dest}
-}
-
-download_dependencies() {
-  which ant > /dev/null || $install_package ant
-  which wget > /dev/null || $install_package wget
-  
-  install -d ${dependencies_dir}
-  
-  echo "Downloading dependencies ..."
-  aws_java_sdk_version="1.11.28"
-  
-  remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
-                  com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
-                  com.fasterxml.jackson.core:jackson-core:2.6.3 \
-                  com.fasterxml.jackson.core:jackson-databind:2.6.3 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.3 \
-                  com.google.code.findbugs:jsr305:3.0.1 \
-                  com.google.guava:guava:18.0 \
-                  org.apache.httpcomponents:httpclient:4.5.1 \
-                  org.apache.httpcomponents:httpclient-cache:4.5.1 \
-                  org.apache.httpcomponents:httpmime:4.5.1 \
-                  org.apache.httpcomponents:httpcore:4.4.3 \
-                  org.apache.httpcomponents:httpcore-ab:4.4.3 \
-                  org.apache.httpcomponents:httpcore-nio:4.4.3 \
-                  commons-cli:commons-cli:1.2 \
-                  commons-codec:commons-codec:1.6 \
-                  commons-logging:commons-logging-adapters:1.1 \
-                  commons-logging:commons-logging-api:1.1 \
-                  org.apache.commons:commons-lang3:3.4 \
-                  log4j:log4j:1.2.17 \
-                  org.slf4j:slf4j-api:1.7.12 \
-                  org.slf4j:slf4j-log4j12:1.7.12 \
-                  com.beust:jcommander:1.48 \
-                  org.xerial:sqlite-jdbc:3.8.11.2 \
-                  joda-time:joda-time:2.8.2 \
-                  org.projectlombok:lombok:1.16.6"
-  
-  for package in ${remote_mvn_pkg}
-  do
-   download_jar $(echo $package | tr : " ")
-  done
 }
 
 do_uninstall () {
@@ -173,17 +107,27 @@ do_uninstall () {
 }
 
 do_build () {
-  download_dependencies
-  
-  ant || fail "Failed to build the Java project"
+  mvn -s .m2/conf/settings.xml package -DskipTests || fail "Failed to build the Java project"
 }
 
 do_install () {
   do_uninstall
+
+  # Discover the version of the target binary - this is used to know the file
+  # name that is going to be produced when the mvn package command runs.
+  echo -n 'Discovering package version... '
+  JAR_PREFIX=$(mvn -q \
+      -Dexec.executable=echo \
+      -Dexec.args='${project.artifactId}-${project.version}' \
+      --non-recursive \
+      exec:exec)
+  echo $JAR_PREFIX
   
-  echo "Installing Kinesis Agent ..."
-  
-  do_build
+  echo "Installing Kinesis Agent ${JAR_PREFIX}"
+
+  # Only build if we need to.. but leave the do_build function untouched in
+  # case someone wants to force the build.
+  test -f ./target/${JAR_PREFIX}-jar-with-dependencies.jar || do_build
   
   install -d ${config_dir}
   install -d ${config_flow_dir}
@@ -193,14 +137,15 @@ do_install () {
   install -d ${sysconfig_dir}
   install -d ${log_dir}
   install -d ${state_dir}
+  install -m644 ./target/${JAR_PREFIX}-jar-with-dependencies.jar ${jar_dir}
   install -m755 ./bin/start-${daemon_name} ${bin_dir}
   install -m755 ./bin/${daemon_name}-babysit ${bin_dir}
-  install -m644 ./${dependencies_dir}/* ${jar_dir}
-  install -m644 ./ant_build/lib/* ${jar_dir}
   install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
-  install -m644 ./support/log4j.xml ${config_dir}
+  install -m644 ./src/main/resources/log4j.xml ${config_dir}
+
+  pushd ${jar_dir} && ln -s ${JAR_PREFIX}-jar-with-dependencies.jar amazon-kinesis-agent.jar && popd
 
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \

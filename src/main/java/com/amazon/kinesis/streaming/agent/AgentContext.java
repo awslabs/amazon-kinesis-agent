@@ -114,8 +114,8 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
      * @return the version of this build.
      */
     public String version() {
-        final String VERSION_INFO_FILE = "versionInfo.properties";
-        try (InputStream versionInfoStream = Agent.class.getResourceAsStream(VERSION_INFO_FILE)) {
+        final String VERSION_INFO_FILE = "/versionInfo.properties";
+        try (InputStream versionInfoStream = com.amazon.kinesis.streaming.agent.Agent.class.getResourceAsStream(VERSION_INFO_FILE)) {
             Properties versionInfo = new Properties();
             versionInfo.load(versionInfoStream);
             return versionInfo.getProperty("version");

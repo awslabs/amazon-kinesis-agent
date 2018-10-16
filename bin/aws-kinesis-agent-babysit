@@ -22,9 +22,6 @@ function start_agent() {
   $SERVICE status >/dev/null 2>&1 || exit 1
 }
 
-$SERVICE status >/dev/null 2>&1
-status=$?
-
 # Check if PID file exists.
 # If it does not, it means either the agent was never started or it was stopped by the user.
 [[ -f $PIDFILE ]] || exit 0
