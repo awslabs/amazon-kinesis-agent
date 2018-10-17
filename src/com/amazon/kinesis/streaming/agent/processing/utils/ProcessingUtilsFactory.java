@@ -49,7 +49,7 @@ public class ProcessingUtilsFactory {
         CSVTOJSON,
         LOGTOJSON,
         ADDBRACKETS,
-        USINGPLUGGIN,
+        USINGPLUGGIN
     }
     
     public static enum LogFormat {

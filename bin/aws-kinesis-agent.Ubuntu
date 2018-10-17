@@ -32,7 +32,6 @@ LOG_CONFIG=${LOG_CONFIG:-/etc/aws-kinesis/log4j.xml}
 ARGS=${ARGS:-}
 RETVAL=0
 
-
 # load any configs/environment from /etc/default/<name>
 [ -e /etc/default/$DAEMON_NAME ] && . /etc/default/$DAEMON_NAME
 

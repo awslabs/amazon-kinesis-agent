@@ -17,14 +17,11 @@ import java.io.File;
 
 import lombok.Getter;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Range;
 
 @Parameters(separators = "=")
@@ -96,5 +93,6 @@ public class AgentOptions {
             }
 
         }
+
     }
 }

@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.LoggerFactory;
+
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
@@ -26,7 +28,6 @@ import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.ILogParser;
 import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
-import org.slf4j.LoggerFactory;
 
 /**
  * Parse the log entries from log file, and convert the log entries into JSON.
@@ -72,7 +73,7 @@ public class LogToJSONDataConverter implements IDataConverter {
         } catch (LogParsingException e) {
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
-            LoggerFactory.getLogger(getClass()).debug("Getting exception while parsing record: [" + dataStr
+        	LoggerFactory.getLogger(getClass()).debug("Getting exception while parsing record: [" + dataStr
                     + "], record will be skipped", e);
             return null;
         }

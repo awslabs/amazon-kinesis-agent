@@ -107,8 +107,8 @@ download_dependencies() {
                   com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
                   com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
                   com.fasterxml.jackson.core:jackson-core:2.6.3 \
-                  com.fasterxml.jackson.core:jackson-databind:2.6.3 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.3 \
+                  com.fasterxml.jackson.core:jackson-databind:2.9.6 \
+                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.9.6 \
                   com.google.code.findbugs:jsr305:3.0.1 \
                   com.google.guava:guava:18.0 \
                   org.apache.httpcomponents:httpclient:4.5.1 \
@@ -201,7 +201,7 @@ do_install () {
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
   install -m644 ./support/log4j.xml ${config_dir}
-
+  
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \
   useradd -c "Streaming Data Agent" -r $agent_user_name

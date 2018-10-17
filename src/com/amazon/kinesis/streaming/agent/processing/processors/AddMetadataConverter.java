@@ -17,10 +17,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.TimeZone;
+import java.util.Date;
+import java.util.LinkedHashMap;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -70,7 +70,7 @@ public class AddMetadataConverter implements IDataConverter {
         if (dataStr.endsWith(NEW_LINE)) {
             dataStr = dataStr.substring(0, (dataStr.length() - NEW_LINE.length()));
         }
-
+        
         if (timestamp.booleanValue()) {
             TimeZone tz = TimeZone.getTimeZone("UTC");
             DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
