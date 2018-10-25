@@ -1,4 +1,5 @@
 # Maven
+build/
 target/
 pom.xml.*
 release.properties
