@@ -9,9 +9,26 @@
       <param name="ConversionPattern" value="LOG: %d{yyyy-MM-dd HH:mm:ss.SSSZ} (%t) %c [%p] %m%n"/>
     </layout>
   </appender>
-
+  <appender name="AbstractParser" class="org.apache.log4j.FileAppender">
+    <param name="File" value="/tmp/AbstractParser.log"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="LOG: %d{yyyy-MM-dd HH:mm:ss.SSSZ} (%t) %c [%p] %m%n"/>
+    </layout>
+  </appender>
+  <logger name="com.amazon.kinesis.streaming.agent.tailing.AbstractParser" additivity="false">
+    <appender-ref ref="AbstractParser"/>
+  </logger>
+  <logger name="com.amazon.kinesis.streaming.agent.tailing.FirehoseParser" additivity="false">
+    <appender-ref ref="AbstractParser"/>
+  </logger>
+  <logger name="com.amazon.kinesis.streaming.agent.tailing.KinesisParser" additivity="false">
+    <appender-ref ref="AbstractParser"/>
+  </logger>
+  <logger name="com.amazon.kinesis.streaming.agent.testing.TestUtils">
+    <appender-ref ref="console"/>
+  </logger>
   <root>
-    <priority value="debug"/>
+    <level value="debug"/>
     <appender-ref ref="console"/>
   </root>
 </log4j:configuration>
