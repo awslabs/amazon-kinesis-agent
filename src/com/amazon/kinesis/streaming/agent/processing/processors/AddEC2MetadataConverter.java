@@ -116,8 +116,27 @@ public class AddEC2MetadataConverter implements IDataConverter {
 
       metadata = new LinkedHashMap<String, Object>();
       metadata.put("privateIp", info.getPrivateIp());
+      metadata.put("availabilityZone", info.getAvailabilityZone());
       metadata.put("instanceId", info.getInstanceId());
+      metadata.put("instanceType", info.getInstanceType());
+      metadata.put("accountId", info.getAccountId());
+      metadata.put("amiId", info.getImageId());
+      metadata.put("region", info.getRegion());
+      metadata.put("metadataTimestamp",
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+              .format(new Date(metadataTimestamp)));
 
+      final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+      DescribeTagsResult result = ec2.describeTags(
+        new DescribeTagsRequest().withFilters(
+          new Filter().withName("resource-id").withValues(info.getInstanceId())));
+      List<TagDescription> tags = result.getTags();
+
+      Map<String, Object> metadataTags = new LinkedHashMap<String, Object>();
+      for (TagDescription tag : tags) {
+        metadataTags.put(tag.getKey().toLowerCase(), tag.getValue());
+      }
+      metadata.put("tags", metadataTags);
     } catch (Exception ex) {
       LOGGER.warn("Error while updating EC2 metadata - " + ex.getMessage() + ", ignoring");
     }
