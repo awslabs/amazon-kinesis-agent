@@ -14,7 +14,7 @@ if [[ -f /etc/lsb-release ]]; then
 elif [[ -f /etc/debian_version ]]; then
   dist=Debian
 else
-  dist=Redhat
+  dist=RedHat
 fi
 
 # Tell the user what OS we detected
