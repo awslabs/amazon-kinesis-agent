@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
@@ -21,13 +21,17 @@ import static org.testng.Assert.assertSame;
 import static org.testng.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -62,7 +66,7 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         flow = (FileFlow<R>) context.flows().get(0);
     }
 
-    private List<R> parseAllRecords(P parser, List<R> records)
+    protected List<R> parseAllRecords(P parser, List<R> records)
             throws IOException {
         return parseRecords(parser, -1, records);
     }
@@ -450,6 +454,18 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         Path testFile = testFiles.createTempFile();
         RecordGenerator generator = new RecordGenerator(true);
         int expectedRecordCount = generator.appendDataToFile(testFile, getTestBytes());
+        
+        // append a record that's not ending with new line. this record should be ignored
+        FileChannel channel = FileChannel.open(testFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND);
+        String incompleteRecord = 
+                String.format("%s\t%010d",
+                        SimpleDateFormat.getDateTimeInstance().format(new Date()),
+                        TestUtils.uniqueCounter()) + 
+                generator.getRecordTerminator() + 
+                "aaaaa";
+        channel.write(ByteBuffer.wrap(incompleteRecord.getBytes()));
+        channel.force(true);
+        
         P parser = buildParser();
         parser = spy(parser);
         TrackedFile file = new TrackedFile(flow, testFile);
@@ -516,11 +532,14 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         final String testfileName = "pretty_printed_json";
         final String expectedResultFileName = "parsed_singleline_json";
         final String pattern = "    \\{";
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "SINGLELINE");
+        }});
         flow = spy(flow);
         // Skip the first two lines
         when(flow.getSkipHeaderLines()).thenReturn(2);
         when(flow.getRecordSplitter()).thenReturn(new RegexSplitter(pattern));
-        when(flow.getDataConverter()).thenReturn(new AgentDataConverterChain(new SingleLineDataConverter()));
+        when(flow.getDataConverter()).thenReturn(new AgentDataConverterChain(new SingleLineDataConverter(config)));
         Path testFile = FileSystems.getDefault().getPath(this.getClass().getResource(testfileName).getFile());
         Path resultFile = FileSystems.getDefault().getPath(this.getClass().getResource(expectedResultFileName).getFile());
         P parser = buildParser();
@@ -891,7 +910,7 @@ public abstract class AbstractParserTest<P extends AbstractParser<R>, R extends 
         assertFalse(parser.isAtEndOfCurrentFile());
     }
     
-    private P buildParser() {
+    protected P buildParser() {
     	return buildParser(flow, getTestBufferSize());
     }
     

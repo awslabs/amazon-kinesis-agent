@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -16,12 +16,12 @@ package com.amazon.kinesis.streaming.agent.tailing;
 import java.nio.ByteBuffer;
 
 public class FirehoseRecord extends AbstractRecord {
-    public FirehoseRecord(TrackedFile file, long offset, ByteBuffer data) {
-        super(file, offset, data);
+    public FirehoseRecord(TrackedFile file, long offset, ByteBuffer data, long originalLength) {
+        super(file, offset, data, originalLength);
     }
 
-    public FirehoseRecord(TrackedFile file, long offset, byte[] data) {
-        super(file, offset, data);
+    public FirehoseRecord(TrackedFile file, long offset, byte[] data, long originalLength) {
+        super(file, offset, data, originalLength);
     }
 
     @Override

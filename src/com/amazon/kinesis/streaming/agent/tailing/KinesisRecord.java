@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -25,14 +25,14 @@ import com.google.common.hash.Hashing;
 public class KinesisRecord extends AbstractRecord {
     protected final String partitionKey;
     
-    public KinesisRecord(TrackedFile file, long offset, ByteBuffer data) {
-        super(file, offset, data);
+    public KinesisRecord(TrackedFile file, long offset, ByteBuffer data, long originalLength) {
+        super(file, offset, data, originalLength);
         Preconditions.checkNotNull(file);
         partitionKey = generatePartitionKey(((KinesisFileFlow)file.getFlow()).getPartitionKeyOption());
     }
 
-    public KinesisRecord(TrackedFile file, long offset, byte[] data) {
-        super(file, offset, data);
+    public KinesisRecord(TrackedFile file, long offset, byte[] data, long originalLength) {
+        super(file, offset, data, originalLength);
         Preconditions.checkNotNull(file);
         partitionKey = generatePartitionKey(((KinesisFileFlow)file.getFlow()).getPartitionKeyOption());
     }

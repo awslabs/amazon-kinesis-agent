@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
@@ -25,14 +25,14 @@ public class FirehoseRecordTest extends TestBase {
 
     @Test
     public void testStartEndOffset() {
-        FirehoseRecord record = new FirehoseRecord(null, 1023, new byte[100]);
+        FirehoseRecord record = new FirehoseRecord(null, 1023, new byte[100], 100);
         Assert.assertEquals(record.startOffset(), 1023);
         Assert.assertEquals(record.endOffset(), 1123);
     }
 
     @Test
     public void testRecordLength() {
-        FirehoseRecord record = new FirehoseRecord(null, 1023, new byte[200]);
+        FirehoseRecord record = new FirehoseRecord(null, 1023, new byte[200], 200);
         Assert.assertEquals(record.lengthWithOverhead(), 200 + FirehoseConstants.PER_RECORD_OVERHEAD_BYTES);
         Assert.assertEquals(record.dataLength(), 200);
     }
@@ -45,7 +45,7 @@ public class FirehoseRecordTest extends TestBase {
         when(flow.getRecordTerminatorBytes()).thenReturn(FirehoseFileFlow.DEFAULT_TRUNCATED_RECORD_TERMINATOR.getBytes(StandardCharsets.UTF_8));
         TrackedFile file = Mockito.mock(TrackedFile.class);
         when(file.getFlow()).thenReturn(flow);
-        FirehoseRecord record = new FirehoseRecord(file, 1023, data);
+        FirehoseRecord record = new FirehoseRecord(file, 1023, data, data.length);
         record.truncate();
         Assert.assertEquals(record.lengthWithOverhead(), FirehoseConstants.MAX_RECORD_SIZE_BYTES + FirehoseConstants.PER_RECORD_OVERHEAD_BYTES);
         Assert.assertEquals(record.length(), FirehoseConstants.MAX_RECORD_SIZE_BYTES);

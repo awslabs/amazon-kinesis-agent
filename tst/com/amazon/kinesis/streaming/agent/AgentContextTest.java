@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent;
 
@@ -44,6 +44,13 @@ public class AgentContextTest {
         ClientConfiguration config = new ClientConfiguration();
         String userAgent = context.userAgent(config);
         assertTrue(userAgent.startsWith(AgentContext.DEFAULT_USER_AGENT + "/0.1"));
+    }
+    
+    @Test
+    public void testInstanceTag() throws IOException {
+        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        context = spy(context);
+        assertNotNull(context.getInstanceTag());
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
@@ -216,7 +216,7 @@ public class KinesisSenderTest extends TailingTestBase {
                     Throwables.propagate(e);
                 }
             }
-            KinesisRecord record = new KinesisRecord(sourceFileForTestRecords, sourceFileForTestRecordsOffset, data);
+            KinesisRecord record = new KinesisRecord(sourceFileForTestRecords, sourceFileForTestRecordsOffset, data, data.length);
             sourceFileForTestRecordsOffset += data.length;
         	buffer.add(record);
         }

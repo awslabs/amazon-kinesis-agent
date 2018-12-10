@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -20,10 +20,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.Checkpointer;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
 import com.google.common.annotations.VisibleForTesting;
@@ -66,7 +66,7 @@ class SimplePublisher<R extends IRecord> implements IHeartbeatProvider {
             FileFlow<R> flow,
             FileCheckpointStore checkpoints,
             ISender<R> sender) {
-        this.logger = Logging.getLogger(getClass());
+        this.logger = LoggerFactory.getLogger(getClass());
         this.agentContext = agentContext;
         this.flow = flow;
         this.queue = new PublishingQueue<>(flow, flow.getPublishQueueCapacity());

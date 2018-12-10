@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.testing;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -34,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.IClass;
 import org.testng.IInvokedMethod;
@@ -47,7 +47,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,22 +57,9 @@ import com.google.common.base.Throwables;
  * A collection of utilities ot use with unit tests.
  */
 public final class TestUtils {
-    private static final Logger LOGGER = Logging.getLogger(TestUtils.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestUtils.class);
     private static final int MIN_FILE_TIME_RESOLUTION = 1000;
     private static AtomicLong atomicCounter = new AtomicLong();
-
-    /**
-     * Static initializer that initializes logging.
-     * Logging specification is stored in resource file <code>test.log4j.xml</code>
-     * at the same path as this class.
-     */
-    static {
-        try (InputStream stream = TestUtils.class.getResourceAsStream("test.log4j.xml")) {
-            Logging.initialize(stream, null, null, -1, -1);
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-    }
 
     /**
      * @return A number that increases with every invokation. No two invokations
@@ -101,14 +87,14 @@ public final class TestUtils {
      * @return
      */
     public static Logger getLogger(Class<?> clazz) {
-        return Logging.getLogger(clazz);
+        return LoggerFactory.getLogger(clazz);
     }
 
     /**
      * @see #getLogger(Class)
      */
     public static Logger getLogger() {
-        return Logging.getLogger(TestUtils.class);
+        return LoggerFactory.getLogger(TestUtils.class);
     }
 
     /**
@@ -631,7 +617,7 @@ public final class TestUtils {
      */
     @Listeners(LoggingTestNGListener.class)
     public static class TestBase {
-        protected final Logger logger = Logging.getLogger(getClass());
+        protected final Logger logger = LoggerFactory.getLogger(getClass());
         protected TestFiles globalTestFiles;
         protected TestFiles testFiles;
         protected Path globalTrashDir;

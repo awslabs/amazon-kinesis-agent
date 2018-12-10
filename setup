@@ -9,8 +9,13 @@ set -e
 # Attempt to load up the /etc/lsb-release file to determine our OS. If none is
 # found, we default our settings to RHEL/Amazon Linux as the original behavior
 # of this script intended.
-dist=RedHat
-[[ -f /etc/lsb-release ]] && dist=Ubuntu
+if [[ -f /etc/lsb-release ]]; then
+  dist=Ubuntu
+elif [[ -f /etc/debian_version ]]; then
+  dist=Debian
+else
+  dist=Redhat
+fi
 
 # Tell the user what OS we detected
 echo "Detected OS Distro: ${dist}"
@@ -28,6 +33,10 @@ case "$dist" in
     install_package="apt-get install -y"
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
+  Debian)
+    install_package="apt-get install -y"
+    init_dir=/etc/init.d
+    sysconfig_dir=/etc/default ;;
   *)
     install_package="yum install -y"
     init_dir=/etc/rc.d/init.d
@@ -39,6 +48,7 @@ agent_user_name=aws-kinesis-agent-user
 bin_dir=/usr/bin
 cron_dir=/etc/cron.d
 config_dir=/etc/aws-kinesis
+config_flow_dir=${config_dir}/agent.d
 jar_dir=/usr/share/${daemon_name}/lib
 dependencies_dir=./dependencies
 log_dir=/var/log/${daemon_name}
@@ -83,6 +93,7 @@ download_jar() {
 
 download_dependencies() {
   which ant > /dev/null || $install_package ant
+  which wget > /dev/null || $install_package wget
   
   install -d ${dependencies_dir}
   
@@ -93,10 +104,11 @@ download_dependencies() {
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
+                  com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
                   com.fasterxml.jackson.core:jackson-annotations:2.6.3 \
                   com.fasterxml.jackson.core:jackson-core:2.6.3 \
-                  com.fasterxml.jackson.core:jackson-databind:2.6.3 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.6.3 \
+                  com.fasterxml.jackson.core:jackson-databind:2.9.6 \
+                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.9.6 \
                   com.google.code.findbugs:jsr305:3.0.1 \
                   com.google.guava:guava:18.0 \
                   org.apache.httpcomponents:httpclient:4.5.1 \
@@ -136,6 +148,7 @@ do_uninstall () {
   echo "Removing $daemon_name from system services..."
   case "$dist" in
     Ubuntu) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
+    Debian) update-rc.d -f $daemon_name remove > /dev/null 2>&1 || true ;;
     *) chkconfig --del $daemon_name > /dev/null 2>&1 || true ;;
   esac
   
@@ -173,6 +186,7 @@ do_install () {
   do_build
   
   install -d ${config_dir}
+  install -d ${config_flow_dir}
   install -d ${jar_dir}
   install -d ${init_dir}
   install -d ${cron_dir}
@@ -186,6 +200,7 @@ do_install () {
   install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
+  install -m644 ./support/log4j.xml ${config_dir}
   
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \
@@ -204,6 +219,7 @@ do_install () {
   
   case "$dist" in
     Ubuntu) update-rc.d $daemon_name defaults ;;
+    Debian) update-rc.d $daemon_name defaults ;;
     *) chkconfig --add $daemon_name ;;
   esac
   

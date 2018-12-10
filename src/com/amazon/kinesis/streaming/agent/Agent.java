@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -14,9 +14,12 @@
 
 package com.amazon.kinesis.streaming.agent;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -25,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.AgentOptions;
@@ -52,19 +56,15 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         AgentOptions opts = AgentOptions.parse(args);
         String configFile = opts.getConfigFile();
         AgentConfiguration config = tryReadConfigurationFile(Paths.get(opts.getConfigFile()));
-        Path logFile = opts.getLogFile() != null ? Paths.get(opts.getLogFile()) : (config != null ? config.logFile() : null);
-        String logLevel = opts.getLogLevel() != null ? opts.getLogLevel() : (config != null ? config.logLevel() : null);
-        int logMaxBackupFileIndex = (config != null ? config.logMaxBackupIndex() : -1);
-        long logMaxFileSize = (config != null ? config.logMaxFileSize() : -1L);
-        Logging.initialize(logFile, logLevel, logMaxBackupFileIndex, logMaxFileSize);
-        final Logger logger = Logging.getLogger(Agent.class);
+        final Logger logger = LoggerFactory.getLogger(Agent.class);
 
         // Install an unhandled exception hook
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
-                if (e instanceof OutOfMemoryError) {
-                    // This prevents the JVM from hanging in case of an OOME
+                if (e instanceof VirtualMachineError || e instanceof LinkageError) {
+                    // This prevents the JVM from hanging in case of an OOME and if we have a LinkageError
+                    // we can't trust the JVM state.
                     dontShutdownOnExit = true;
                 }
                 String msg = "FATAL: Thread " + t.getName() + " threw an unrecoverable error. Aborting application";
@@ -86,6 +86,8 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             if (config == null) {
                 config = readConfigurationFile(Paths.get(opts.getConfigFile()));
             }
+            // Read the config directory
+            config = readConfigurationDirectory(config);
             // Initialize and start the agent
             AgentContext agentContext = new AgentContext(config);
             if (agentContext.flows().isEmpty()) {
@@ -132,6 +134,44 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             return null;
         }
     }
+    
+    private static AgentConfiguration readConfigurationDirectory(AgentConfiguration agentConfiguration) {
+        final String DEFAULT_CONFIG_DIRECTORY = "/etc/aws-kinesis/agent.d/";
+        final Logger logger = LoggerFactory.getLogger(Agent.class);
+
+        File configDir = new File(DEFAULT_CONFIG_DIRECTORY);
+
+        if (!configDir.exists() || !configDir.isDirectory()) return agentConfiguration;
+
+        // Add flows from the main configuration
+        List<Configuration> flows = new LinkedList();
+        flows.addAll((List<Configuration>) agentConfiguration.getConfigMap().get("flows"));
+
+        // Read all configuration files
+        File[] configFiles = configDir.listFiles();
+
+        Configuration config = null;
+
+        for (File file : configFiles) {
+            if (file.isFile()) {
+                try {
+                    logger.info("Reading flow configuration from file: " + file.getName());
+                    config = Configuration.get(new FileInputStream(file));
+                    if ((config != null) && config.containsKey("flows"))
+                        flows.addAll((List<Configuration>) config.getConfigMap().get("flows"));
+                } catch (Exception ex) {
+                    logger.warn("Error reading configuration file, ignoring - " + file.getName());
+                }
+            }
+        }
+
+        logger.info("Found " + flows.size() + " configured flow(s)");
+
+        // Append flows
+        HashMap<String, Object> newConfig = new HashMap<String,Object>(agentConfiguration.getConfigMap());
+        newConfig.put("flows", flows);
+        return new AgentConfiguration(newConfig);
+    } 
 
     private final AgentContext agentContext;
     private final HeartbeatService heartbeat;
@@ -144,7 +184,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     private AbstractScheduledService metricsEmitter;
 
     public Agent(AgentContext agentContext) {
-        this.logger = Logging.getLogger(Agent.class);
+        this.logger = LoggerFactory.getLogger(Agent.class);
         this.agentContext = agentContext;
         this.sendingExecutor = getSendingExecutor(agentContext);
         this.checkpoints = new SQLiteFileCheckpointStore(agentContext);

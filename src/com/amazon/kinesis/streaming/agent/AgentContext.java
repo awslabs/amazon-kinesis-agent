@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -15,6 +15,8 @@ package com.amazon.kinesis.streaming.agent;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -43,6 +46,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
+import com.amazonaws.util.EC2MetadataUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -53,7 +57,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * state.
  */
 public class AgentContext extends AgentConfiguration implements IMetricsContext {
-    private static final Logger LOGGER = Logging.getLogger(AgentContext.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentContext.class);
 
     @VisibleForTesting
     static final String DEFAULT_USER_AGENT = "aws-kinesis-agent";
@@ -67,6 +71,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     private AmazonKinesisClient kinesisClient;
     private AmazonCloudWatch cloudwatchClient;
     private IMetricsContext metrics;
+    private String instanceTag = null;
     /**
      *
      * @param configuration
@@ -84,6 +89,16 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     public AgentContext(Configuration configuration, FileFlowFactory fileFlowFactory) {
         super(configuration);
         this.fileFlowFactory = fileFlowFactory;
+        if (cloudwatchTagInstance()) {
+            instanceTag = EC2MetadataUtils.getInstanceId();
+            if (Strings.isNullOrEmpty(instanceTag)) {
+                try {
+                    instanceTag = InetAddress.getLocalHost().getHostName();
+                } catch (UnknownHostException e) {
+                    LOGGER.error("Cannot determine host name, instance tagging in CloudWatch metrics will be skipped.");
+                }
+            }
+        }
         if (containsKey("flows")) {
             for (Configuration c : readList("flows", Configuration.class)) {
                 FileFlow<?> flow = fileFlowFactory.getFileFlow(this, c);
@@ -100,7 +115,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
      */
     public String version() {
         final String VERSION_INFO_FILE = "versionInfo.properties";
-        try (InputStream versionInfoStream = Logging.class.getResourceAsStream(VERSION_INFO_FILE)) {
+        try (InputStream versionInfoStream = Agent.class.getResourceAsStream(VERSION_INFO_FILE)) {
             Properties versionInfo = new Properties();
             versionInfo.load(versionInfoStream);
             return versionInfo.getProperty("version");
@@ -236,5 +251,9 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     @Override
     public IMetricsScope beginScope() {
         return getMetricsContext().beginScope();
+    }
+    
+    public String getInstanceTag() {
+    	return instanceTag;
     }
 }

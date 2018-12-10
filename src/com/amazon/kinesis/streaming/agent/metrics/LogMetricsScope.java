@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -14,8 +14,8 @@
 package com.amazon.kinesis.streaming.agent.metrics;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.StatisticSet;
@@ -24,7 +24,7 @@ import com.amazonaws.services.cloudwatch.model.StatisticSet;
  * An AccumulatingMetricsScope that outputs via log4j.
  */
 public class LogMetricsScope extends AccumulatingMetricsScope {
-    public static final Logger LOGGER = Logging.getLogger(LogMetricsScope.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger(LogMetricsScope.class);
 
     public LogMetricsScope() {
         super();

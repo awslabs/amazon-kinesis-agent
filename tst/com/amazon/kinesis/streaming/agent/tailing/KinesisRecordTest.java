@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
@@ -39,14 +39,14 @@ public class KinesisRecordTest extends TestBase {
 
     @Test
     public void testStartEndOffset() {
-    	KinesisRecord record = new KinesisRecord(file, 1023, new byte[100]);
+    	KinesisRecord record = new KinesisRecord(file, 1023, new byte[100], 100);
         Assert.assertEquals(record.startOffset(), 1023);
         Assert.assertEquals(record.endOffset(), 1123);
     }
 
     @Test
     public void testRecordLength() {
-    	KinesisRecord record = new KinesisRecord(file, 1023, new byte[200]);
+    	KinesisRecord record = new KinesisRecord(file, 1023, new byte[200], 200);
     	String partitionKey = record.partitionKey();
         Assert.assertEquals(record.lengthWithOverhead(), 200 + partitionKey.length() + KinesisConstants.PER_RECORD_OVERHEAD_BYTES);
         Assert.assertEquals(record.length(), 200 + partitionKey.length());
@@ -56,7 +56,7 @@ public class KinesisRecordTest extends TestBase {
     @Test
     public void testTruncate() throws IOException {
         byte[] data = RandomUtils.nextBytes((KinesisConstants.MAX_RECORD_SIZE_BYTES) + RandomUtils.nextInt(1, 100));
-        KinesisRecord record = new KinesisRecord(file, 1023, data);
+        KinesisRecord record = new KinesisRecord(file, 1023, data, data.length);
         record.truncate();
         Assert.assertEquals(record.lengthWithOverhead(), KinesisConstants.MAX_RECORD_SIZE_BYTES + KinesisConstants.PER_RECORD_OVERHEAD_BYTES);
         Assert.assertEquals(record.length(), KinesisConstants.MAX_RECORD_SIZE_BYTES);
@@ -70,7 +70,7 @@ public class KinesisRecordTest extends TestBase {
         when(((KinesisFileFlow)flow).getPartitionKeyOption()).thenReturn(partitionKeyOption);
         
         byte[] data = RandomUtils.nextBytes(200);
-        KinesisRecord record = new KinesisRecord(file, 1023, data);
+        KinesisRecord record = new KinesisRecord(file, 1023, data, data.length);
         Assert.assertNotNull(record.partitionKey());
         Assert.assertEquals(record.partitionKey(), record.generatePartitionKey(partitionKeyOption));
     }

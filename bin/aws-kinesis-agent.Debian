@@ -1,0 +1,107 @@
+#! /usr/bin/env bash
+
+### BEGIN INIT INFO
+# Provides:          aws-kinesis-agent
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Daemon for Amazon Kinesis Agent.
+# Description:       This script is responsible for running Amazon Kinesis Agent
+#                    as a daemon.
+### END INIT INFO
+
+set -e
+
+# get init functions: status()
+. /lib/lsb/init-functions
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON_NAME=aws-kinesis-agent
+NAME=$DAEMON_NAME  # debian compatibility
+AGENT_USER=aws-kinesis-agent-user
+PIDFILE=/var/run/$DAEMON_NAME.pid
+LOG_DIR=/var/log/$DAEMON_NAME
+SHUTDOWN_TIME=11   #10 second default value in AgentConfiguration.java, +1 second buffer
+INITLOGFILE=/tmp/$DAEMON_NAME.`date '+%Y%m%d%H%M%S'`.initlog
+
+# This script is in /etc/rc.d/init.d/ and the executable is in /usr/bin
+BASEDIR=${BASEDIR%/}
+DAEMON_EXEC=$BASEDIR/usr/bin/start-$DAEMON_NAME
+LOG_CONFIG=${LOG_CONFIG:-/etc/aws-kinesis/log4j.xml}
+ARGS=${ARGS:-}
+RETVAL=0
+
+# load any configs/environment from /etc/default/<name>
+[ -e /etc/default/$DAEMON_NAME ] && . /etc/default/$DAEMON_NAME
+
+export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
+
+# Export the settings
+do_start () {
+  # Return
+  #   0 if daemon has been started
+  #   1 if daemon was already running
+  #   other if daemon could not be started or a failure occured
+  start-stop-daemon --start \
+          --quiet \
+          --background \
+          --make-pidfile \
+          --pidfile $PIDFILE \
+          --chuid $AGENT_USER \
+          --startas $DAEMON_EXEC -- \
+                $ARGS
+}
+
+do_stop () {
+  # Return
+  #   0 if daemon has been stopped
+  #   1 if daemon was already stopped
+  #   other if daemon could not be stopped or a failure occurred
+  start-stop-daemon --stop \
+          --quiet \
+          --retry=TERM/$SHUTDOWN_TIME/KILL/5 \
+          --pidfile $PIDFILE \
+          --oknodo  \
+          && rm -f ${PIDFILE}
+}
+
+
+
+command=$1
+shift
+case "$command" in
+  start)
+    log_daemon_msg "Starting $DAEMON_NAME"
+    do_start
+
+    case "$?" in
+      0) log_end_msg 0 ;;
+      1) log_warning_msg "already started"
+         log_end_msg 0 ;;
+      *) log_end_msg 1 ;;
+    esac
+    ;;
+  stop)
+    log_daemon_msg "Stopping $DAEMON_NAME"
+    do_stop
+
+    case "$?" in
+      0) log_end_msg 0 ;;
+      *) log_end_msg 1 ;;
+    esac
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+  status)
+    status_of_proc -p $PIDFILE $DAEMON_NAME $NAME
+    exit $?
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+exit $RETVAL

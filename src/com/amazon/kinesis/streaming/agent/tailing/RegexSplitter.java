@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -73,7 +73,9 @@ public class RegexSplitter implements ISplitter {
         }
         
         // We've scanned to the end and there is only one complete record in the buffer, set the position to the end
-        if (!firstLine && buffer.limit() < buffer.capacity()) {
+        if (!firstLine && buffer.limit() < buffer.capacity() 
+                && buffer.position() > 0
+                && buffer.get(buffer.position() - 1) == SingleLineSplitter.LINE_DELIMITER) {
             return buffer.position();
         }
         

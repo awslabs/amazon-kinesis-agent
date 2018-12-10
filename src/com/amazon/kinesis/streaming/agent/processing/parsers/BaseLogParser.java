@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -57,7 +57,7 @@ public abstract class BaseLogParser implements ILogParser {
         // if matchPattern is specified, customFieldNames must be specified as well
         if (matchPattern != null && customFields == null) {
             throw new ConfigurationException(
-                    "matchPattern must be specified when customFieldNames is specified");
+                    "customFieldNames must be specified when matchPattern is specified");
         }
         if (matchPattern != null) {
             setPattern(matchPattern);

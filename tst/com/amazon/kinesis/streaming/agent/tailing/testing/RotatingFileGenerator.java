@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.tailing.testing;
 
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.google.common.util.concurrent.AbstractScheduledService;
 
 public class RotatingFileGenerator extends AbstractScheduledService {
-    private static final Logger LOGGER = Logging.getLogger(RotatingFileGenerator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileGenerator.class);
     private final FileRotator rotator;
     private final double recordsPerSecond;
     private final long wakeUpIntervalMillis;

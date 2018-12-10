@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -17,6 +17,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -71,6 +73,8 @@ public class LogToJSONDataConverter implements IDataConverter {
         } catch (LogParsingException e) {
             // ignore the record if a LogParsingException is thrown
             // the record is filtered out in this case
+        	LoggerFactory.getLogger(getClass()).debug("Getting exception while parsing record: [" + dataStr
+                    + "], record will be skipped", e);
             return null;
         }
         

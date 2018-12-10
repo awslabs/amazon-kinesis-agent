@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 Amazon.com, Inc. All Rights Reserved.
+ * Copyright (c) 2014-2017 Amazon.com, Inc. All Rights Reserved.
  */
 package com.amazon.kinesis.streaming.agent.config;
 
@@ -34,6 +34,7 @@ public class AgentConfigurationTest {
         Assert.assertNull(config.accessKeyId());
         Assert.assertNull(config.secretKey());
         Assert.assertTrue(config.cloudwatchEmitMetrics());
+        Assert.assertFalse(config.cloudwatchTagInstance());
         Assert.assertEquals(config.logEmitInternalMetrics(), false);
         Assert.assertEquals(config.logStatusReportingPeriodSeconds(), AgentConfiguration.DEFAULT_LOG_STATUS_REPORTING_PERIOD_SECONDS);
         Assert.assertEquals(config.sendingThreadsKeepAliveMillis(), AgentConfiguration.DEFAULT_SENDING_THREADS_KEEPALIVE_MILLIS);
@@ -45,10 +46,6 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.socketTimeoutMillis(), ClientConfiguration.DEFAULT_SOCKET_TIMEOUT);
         Assert.assertEquals(config.useHttpGzip(), ClientConfiguration.DEFAULT_USE_GZIP);
         Assert.assertEquals(config.useTcpKeepAlive(), ClientConfiguration.DEFAULT_TCP_KEEP_ALIVE);
-        Assert.assertNull(config.logFile());
-        Assert.assertNull(config.logLevel());
-        Assert.assertEquals(config.logMaxBackupIndex(), -1);
-        Assert.assertEquals(config.logMaxFileSize(), -1);
     }
 
     @Test
@@ -57,6 +54,7 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.accessKeyId(), "ACCESS_ID");
         Assert.assertEquals(config.secretKey(), "SECRET_KEY");
         Assert.assertFalse(config.cloudwatchEmitMetrics());
+        Assert.assertTrue(config.cloudwatchTagInstance());
         Assert.assertEquals(config.cloudwatchMetricsBufferTimeMillis(), 25);
         Assert.assertEquals(config.cloudwatchMetricsQueueSize(), 100);
         Assert.assertEquals(config.logEmitInternalMetrics(), true);
@@ -71,10 +69,6 @@ public class AgentConfigurationTest {
         Assert.assertEquals(config.socketTimeoutMillis(), 1234);
         Assert.assertEquals(config.useHttpGzip(), true);
         Assert.assertEquals(config.useTcpKeepAlive(), true);
-        Assert.assertEquals(config.logLevel(), "ERROR");
-        Assert.assertEquals(config.logFile(), Paths.get("/tmp/agent-test.log"));
-        Assert.assertEquals(config.logMaxBackupIndex(), 12);
-        Assert.assertEquals(config.logMaxFileSize(), 1234);
     }
 
     @Test

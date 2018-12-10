@@ -81,6 +81,7 @@ The installation done by the setup script is only tested on the following OS Dis
   * **Red Hat Enterprise Linux** version 7 or later
   * **Amazon Linux AMI** version 2015.09 or later
   * **Ubuntu Linux** version 12.04 or later
+  * **Debian Linux** version 8.6 or later
 
 For other distributions or platforms, you can build the Java project with the following command:
 
@@ -120,7 +121,7 @@ java -cp CLASSPATH "com.amazon.kinesis.streaming.agent.Agent"
 [docs-signup]: http://docs.aws.amazon.com/AWSSdkDocsJava/latest/DeveloperGuide/java-dg-setup.html
 [kinesis-stream]: https://aws.amazon.com/kinesis/streams/
 [kinesis-firehose]: https://aws.amazon.com/kinesis/firehose/
-[kinesis-stream-create]: http://docs.aws.amazon.com/kinesis/latest/dev/kinesis-using-sdk-java-create-stream.html
+[kinesis-stream-create]: http://docs.aws.amazon.com/streams/latest/dev/kinesis-using-sdk-java-create-stream.html
 [kinesis-firehose-create]: http://docs.aws.amazon.com/firehose/latest/dev/basic-create.html
-[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/kinesis/latest/dev/writing-with-agents.html
+[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/streams/latest/dev/writing-with-agents.html
 [kinesis-firehose-agent-guide]: http://docs.aws.amazon.com/firehose/latest/dev/writing-with-agents.html

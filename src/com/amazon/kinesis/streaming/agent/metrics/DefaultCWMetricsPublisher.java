@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -17,8 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
@@ -30,7 +30,7 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 
 public class DefaultCWMetricsPublisher implements ICWMetricsPublisher<CWMetricKey> {
 
-    private static final Logger LOG = Logging.getLogger(CWPublisherRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CWPublisherRunnable.class);
 
     // CloudWatch API has a limit of 20 MetricDatums per request
     private static final int BATCH_SIZE = 20;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -37,6 +37,9 @@ public class FirehoseFileFlow extends FileFlow<FirehoseRecord> {
             TimeUnit.SECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(15));
     public static final Range<Long> VALID_WAIT_ON_EMPTY_PUBLISH_QUEUE_MILLIS_RANGE = Range.closed(
             TimeUnit.SECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(15));
+    public static final Range<Integer> VALID_AGGREGATED_RECORD_SIZE_BYTES_RANGE = Range.closed(0, FirehoseConstants.MAX_RECORD_SIZE_BYTES);
+
+    public static final String AGGREGATED_RECORD_SIZE_BYTES_KEY = "aggregatedRecordSizeBytes";
 
     @Getter protected final String id;
     @Getter protected final String destination;
@@ -45,6 +48,12 @@ public class FirehoseFileFlow extends FileFlow<FirehoseRecord> {
         super(context, config);
         destination = readString(FirehoseConstants.DESTINATION_KEY);
         id = "fh:" + destination + ":" + sourceFile.toString();
+
+        int recordSizeHint = readInteger(AGGREGATED_RECORD_SIZE_BYTES_KEY, FirehoseConstants.DEFAULT_AGGREGATED_RECORD_SIZE_BYTES);
+        Configuration.validateRange(recordSizeHint, VALID_AGGREGATED_RECORD_SIZE_BYTES_RANGE, AGGREGATED_RECORD_SIZE_BYTES_KEY);
+        if (recordSizeHint > 0 && recordSplitter instanceof SingleLineSplitter) {
+            recordSplitter = new AggregationSplitter(recordSizeHint);
+        }
     }
 
     @Override

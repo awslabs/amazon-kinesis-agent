@@ -28,6 +28,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.11</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.9.5</version>
+        </dependency>
+        <dependency>
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-core</artifactId>
           <version>${aws-java-sdk.version}</version>
@@ -48,6 +58,11 @@
           <version>${aws-java-sdk.version}</version>
         </dependency>
         <dependency>
+          <groupId>com.amazonaws</groupId>
+          <artifactId>aws-java-sdk-ec2</artifactId>
+          <version>${aws-java-sdk.version}</version>
+        </dependency>
+        <dependency>
           <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-annotations</artifactId>
           <version>2.6.3</version>
@@ -60,7 +75,7 @@
         <dependency>
           <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
-          <version>2.6.3</version>
+          <version>2.9.6</version>
         </dependency>
         <dependency>
           <groupId>com.google.code.findbugs</groupId>

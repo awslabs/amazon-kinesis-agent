@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 import lombok.Getter;
 import lombok.ToString;
@@ -57,6 +58,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public static final String INITIAL_POSITION_KEY = "initialPosition";
     public static final String DEFAULT_TRUNCATED_RECORD_TERMINATOR = String.valueOf(Constants.NEW_LINE);
     public static final String CONVERSION_OPTION_KEY = "dataProcessingOptions";
+    public static final String FILE_FOOTER_PATTERN = "fileFooterPattern"; //If a line matches this pattern it stops processing the file
 
     @Getter protected final AgentContext agentContext;
     @Getter protected final SourceFile sourceFile;
@@ -74,6 +76,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     @Getter protected final long retryMaxBackoffMillis;
     @Getter protected final int publishQueueCapacity;
     @Getter protected final IDataConverter dataConverter;
+    @Getter protected final Pattern fileFooterPattern;
 
     protected FileFlow(AgentContext context, Configuration config) {
         super(config);
@@ -112,6 +115,10 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         } else {
             recordSplitter = new SingleLineSplitter();
         }
+        
+        String footerPattern = readString(FILE_FOOTER_PATTERN, null);
+        
+        fileFooterPattern = Strings.isNullOrEmpty(footerPattern)? null : Pattern.compile(footerPattern, Pattern.MULTILINE);
 
         String terminatorConfig = readString("truncatedRecordTerminator", DEFAULT_TRUNCATED_RECORD_TERMINATOR);
         if (terminatorConfig == null || terminatorConfig.getBytes(StandardCharsets.UTF_8).length >= getMaxRecordSizeBytes()) {
