@@ -128,8 +128,11 @@ download_dependencies() {
                   com.beust:jcommander:1.48 \
                   org.xerial:sqlite-jdbc:3.20.1 \
                   joda-time:joda-time:2.8.2 \
-                  org.projectlombok:lombok:1.16.6"
-  
+		  org.projectlombok:lombok:1.18.4 \
+                  javax.xml.bind:jaxb-api:2.3.0 \
+                  sun.xml.bind:jaxb-impl:2.3.0 \
+                  org.glassfish.jaxb:jaxb-runtime:2.3.0 \
+                  javax.activation:activation:2.3.0"
   for package in ${remote_mvn_pkg}
   do
    download_jar $(echo $package | tr : " ")

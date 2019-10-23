@@ -20,9 +20,8 @@
 
     <target name="get-java-version">
       <condition property="current.java.version">
-        <or>
-          <equals arg1="${ant.java.version}" arg2="1.7"/>
-          <equals arg1="${ant.java.version}" arg2="1.8"/>
+	<or>
+	  <javaversion atleast="1.8"/>
         </or>
       </condition>
     </target>
