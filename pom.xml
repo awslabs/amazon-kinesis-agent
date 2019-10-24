@@ -183,18 +183,8 @@
           <version>2.3.0</version>
         </dependency>
         <dependency>
-          <groupId>sun.xml.bind</groupId>
-          <artifactId>jaxb-impl</artifactId>
-          <version>2.3.0</version>
-        </dependency>
-        <dependency>
           <groupId>org.glassfish.jaxb</groupId>
           <artifactId>jaxb-runtime</artifactId>
-          <version>2.3.0</version>
-        </dependency>
-        <dependency>
-          <groupId>javax.activation</groupId>
-          <artifactId>activation</artifactId>
           <version>2.3.0</version>
         </dependency>
     </dependencies>
