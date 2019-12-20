@@ -23,7 +23,8 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 
 public class AgentAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
     public AgentAWSCredentialsProviderChain(AgentConfiguration config) {
-        super(new AgentAWSCredentialsProvider(config),
+        super(new UserDefinedCredentialsProvider(config),
+                new AgentAWSCredentialsProvider(config),
                 new EnvironmentVariableCredentialsProvider(),
                 new SystemPropertiesCredentialsProvider(),
                 new ContainerCredentialsProvider(),
