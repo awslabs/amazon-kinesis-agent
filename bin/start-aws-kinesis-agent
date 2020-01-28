@@ -29,6 +29,11 @@ function check_java_version() {
    local javacmd=$1
    local verbose=$2
    local javaversion=$($javacmd -version 2>&1 | awk -F '"' '/version/ {print $2}')
+   
+   if [[ "$javaversion" == "10" || "$javaversion" > "10" ]]; then
+     return 0
+   fi
+   
    if [[ "$javaversion" < "$MIN_JAVA_VERSION" ]]; then
      if [[ -n "$verbose" ]]; then
        _error_msg "JVM version >= $MIN_JAVA_VERSION is required. Found following JVM:" \

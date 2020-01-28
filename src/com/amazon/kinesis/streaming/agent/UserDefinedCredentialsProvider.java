@@ -17,7 +17,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
     private static final String CREDENTIALS_PROVIDER_LOCATION = "userDefinedCredentialsProvider.location";
@@ -28,7 +27,7 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
 
 
     private final AgentConfiguration configuration;
-    private Optional<AWSCredentialsProvider> awsCredentialsProvider = Optional.empty();
+    private AWSCredentialsProvider awsCredentialsProvider = null;
 
     public UserDefinedCredentialsProvider(AgentConfiguration configuration) {
         this.configuration = configuration;
@@ -42,8 +41,8 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
     @Override
     public AWSCredentials getCredentials() {
         try {
-            if (awsCredentialsProvider.isPresent()) {
-                return awsCredentialsProvider.get().getCredentials();
+            if (awsCredentialsProvider != null) {
+                return awsCredentialsProvider.getCredentials();
             }
         } catch (Exception e) {
             LOGGER.error("There is a problem with the User defined credentials provider. " + e);
@@ -54,8 +53,8 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
     @Override
     public void refresh() {
         try {
-            if (awsCredentialsProvider.isPresent()) {
-                awsCredentialsProvider.get().refresh();
+            if (awsCredentialsProvider != null) {
+                awsCredentialsProvider.refresh();
                 return;
             }
         } catch (Exception e) {
@@ -69,9 +68,9 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
     }
 
     private void instantiateCredentialsProvider () {
-        Optional<Class<AWSCredentialsProvider>> awsCredentialsProviderClass = loadUserDefinedCredentialsProvider();
-        if (awsCredentialsProviderClass.isPresent()) {
-            Class<AWSCredentialsProvider> credentialsProviderClass = awsCredentialsProviderClass.get();
+        Class<AWSCredentialsProvider> awsCredentialsProviderClass = loadUserDefinedCredentialsProvider();
+        if (awsCredentialsProviderClass != null) {
+            Class<AWSCredentialsProvider> credentialsProviderClass = awsCredentialsProviderClass;
 
             if (!AWSCredentialsProvider.class.isAssignableFrom(credentialsProviderClass)) {
                 LOGGER.error("The loaded credential provider " +  credentialsProviderClass.getName() +
@@ -88,7 +87,7 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
             }
 
             try {
-                awsCredentialsProvider = Optional.of(constructor.newInstance());
+                awsCredentialsProvider = constructor.newInstance();
                 LOGGER.info("Instantiated the user defined credentials provider.");
             } catch (Exception e) {
                 LOGGER.error("Exception while instantiating user defined " +
@@ -97,34 +96,34 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
         }
     }
 
-    private Optional<Class<AWSCredentialsProvider>> loadUserDefinedCredentialsProvider() {
-            Optional<Pair<String, Optional<String>>> customCredentialsProvider = getUserDefinedCredentialsProviderFromConfig();
-            if (customCredentialsProvider.isPresent()) {
+    private Class<AWSCredentialsProvider> loadUserDefinedCredentialsProvider() {
+            Pair<String, String> customCredentialsProvider = getUserDefinedCredentialsProviderFromConfig();
+            if (customCredentialsProvider != null) {
                 try {
                     List<URL> classPathList = new ArrayList<>();
 
                     File libDirPath = new File(AGENT_LIB_DIRECTORY);
                     classPathList.add(libDirPath.toURI().toURL());
 
-                    if (customCredentialsProvider.get().getRight().isPresent()) {
+                    if (customCredentialsProvider.getRight() != null && customCredentialsProvider.getRight().length() > 0) {
                         addCustomCredentialsJarToClassPath(customCredentialsProvider, classPathList);
                     }
                     URL[] urlArray = new URL[classPathList.size()];
                     URLClassLoader urlClassLoader = new URLClassLoader(classPathList.toArray(urlArray),
                             ClassLoader.getSystemClassLoader());
-                    Class classToLoad = Class.forName(customCredentialsProvider.get().getLeft(), true,
+                    Class classToLoad = Class.forName(customCredentialsProvider.getLeft(), true,
                             urlClassLoader);
-                    return Optional.of((Class<AWSCredentialsProvider>) classToLoad);
+                    return (Class<AWSCredentialsProvider>) classToLoad;
                 } catch (Exception e) {
                     LOGGER.error("Error loading user defined credentials provider. " + e);
                 }
             }
-            return Optional.empty();
+            return null;
     }
 
-    private void addCustomCredentialsJarToClassPath(Optional<Pair<String, Optional<String>>> customCredentialsProvider,
+    private void addCustomCredentialsJarToClassPath(Pair<String, String> customCredentialsProvider,
                                                     List<URL> classPathList) throws IOException {
-        File customCredentialProviderJar = new File(customCredentialsProvider.get().getRight().get());
+        File customCredentialProviderJar = new File(customCredentialsProvider.getRight());
         classPathList.add(customCredentialProviderJar.toURI().toURL());
         checkIfOwnerIsKinesisAgentUser(customCredentialProviderJar);
     }
@@ -143,18 +142,18 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
         }
     }
 
-    private Optional<Pair<String, Optional<String>>> getUserDefinedCredentialsProviderFromConfig() {
+    private Pair<String, String> getUserDefinedCredentialsProviderFromConfig() {
         String credentialsProviderClass = "";
-        Optional<String> credentialsProviderLocation = Optional.empty();
+        String credentialsProviderLocation = "";
         try {
             credentialsProviderClass = configuration.readString(CREDENTIALS_PROVIDER_CLASS);
-            credentialsProviderLocation = Optional.of(configuration.readString(CREDENTIALS_PROVIDER_LOCATION));
+            credentialsProviderLocation = configuration.readString(CREDENTIALS_PROVIDER_LOCATION);
         } catch (ConfigurationException e) {
             if (credentialsProviderClass.length() == 0) {
                 LOGGER.info("No custom implementation of credentials provider present in the config file");
-                return Optional.empty();
+                return null;
             }
         }
-        return Optional.of(Pair.of(credentialsProviderClass, credentialsProviderLocation));
+        return Pair.of(credentialsProviderClass, credentialsProviderLocation);
     }
 }
