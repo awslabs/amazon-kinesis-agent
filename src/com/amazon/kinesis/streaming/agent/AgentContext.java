@@ -1,14 +1,14 @@
 /*
  * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Amazon Software License (the "License").
- * You may not use this file except in compliance with the License. 
+ * You may not use this file except in compliance with the License.
  * A copy of the License is located at
- * 
+ *
  *  http://aws.amazon.com/asl/
- *  
- * or in the "license" file accompanying this file. 
- * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ *
+ * or in the "license" file accompanying this file.
+ * This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations under the License.
  */
 package com.amazon.kinesis.streaming.agent;
@@ -169,7 +169,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
         }
         return firehoseClient;
     }
-    
+
     public synchronized AmazonKinesisClient getKinesisClient() {
         if (kinesisClient == null) {
             kinesisClient = new AmazonKinesisClient(
@@ -201,20 +201,20 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     	AWSCredentialsProvider credentialsProvider = new AgentAWSCredentialsProviderChain(this);
     	final String assumeRoleARN = readString(ASSUME_ROLE_ARN, null);
     	if (!Strings.isNullOrEmpty(assumeRoleARN)) {
-    		credentialsProvider = 
-    				getSTSAssumeRoleSessionCredentialsProvider(assumeRoleARN, 
+    		credentialsProvider =
+    				getSTSAssumeRoleSessionCredentialsProvider(assumeRoleARN,
     						credentialsProvider);
     	}
     	return credentialsProvider;
     }
-    
+
     public STSAssumeRoleSessionCredentialsProvider getSTSAssumeRoleSessionCredentialsProvider(
     		String roleARN, AWSCredentialsProvider credentialsProvider) {
     	Preconditions.checkNotNull(credentialsProvider);
     	final String stsEndpoint = stsEndpoint();
     	final String roleExternalId = readString(ASSUME_ROLE_EXTERNAL_ID, null);
-    	
-    	STSAssumeRoleSessionCredentialsProvider.Builder builder = 
+
+    	STSAssumeRoleSessionCredentialsProvider.Builder builder =
     			new STSAssumeRoleSessionCredentialsProvider.Builder(roleARN, ASSUME_ROLE_SESSION)
     					.withLongLivedCredentialsProvider(credentialsProvider)
     					.withRoleSessionDurationSeconds(DEFAULT_ASSUME_ROLE_DURATION_SECONDS);
@@ -224,7 +224,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     	if (!Strings.isNullOrEmpty(stsEndpoint)) {
     		builder = builder.withServiceEndpoint(stsEndpoint);
     	}
-    	
+
     	return builder.build();
     }
 
@@ -252,7 +252,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     public IMetricsScope beginScope() {
         return getMetricsContext().beginScope();
     }
-    
+
     public String getInstanceTag() {
     	return instanceTag;
     }
