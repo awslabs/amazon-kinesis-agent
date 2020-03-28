@@ -30,7 +30,7 @@ public class KinesisFileFlowTest extends FileFlowTest<KinesisFileFlow> {
         assertEquals(ff.getRetryMaxBackoffMillis(), KinesisConstants.DEFAULT_RETRY_MAX_BACKOFF_MILLIS);
         assertEquals(ff.getPartitionKeyOption(), KinesisConstants.PartitionKeyOption.RANDOM);
     }
-	
+
 
     @SuppressWarnings("serial")
 	@Test
@@ -47,15 +47,22 @@ public class KinesisFileFlowTest extends FileFlowTest<KinesisFileFlow> {
             put(getDestinationKey(), "des2");
             put(KinesisConstants.PARTITION_KEY, "RANDOM");
         }}));
+        KinesisFileFlow ff3 = buildFileFlow(context, new Configuration(new HashMap<String, Object>() {{
+            put("filePattern", file);
+            put(getDestinationKey(), "des3");
+            put(KinesisConstants.PARTITION_KEY, "PATTERN");
+            put(KinesisConstants.PARTITION_PATTERN, ".*([a-z]).*");
+        }}));
         assertEquals(ff1.getPartitionKeyOption(), KinesisConstants.PartitionKeyOption.DETERMINISTIC);
         assertEquals(ff2.getPartitionKeyOption(), KinesisConstants.PartitionKeyOption.RANDOM);
+        assertEquals(ff3.getPartitionKeyOption(), KinesisConstants.PartitionKeyOption.PATTERN);
 	}
-    
+
     @DataProvider(name="badPartitionKeyOptionInConfig")
     public Object[][] testPartitionKeyOptionInConfigData(){
         return new Object[][] { { "UNSUPPORTED" }, { "random" }, { "" } };
     }
-    
+
     @SuppressWarnings("serial")
     @Test(dataProvider="badPartitionKeyOptionInConfig",
           expectedExceptions=ConfigurationException.class)
@@ -69,7 +76,18 @@ public class KinesisFileFlowTest extends FileFlowTest<KinesisFileFlow> {
         }}));
         ff.getPartitionKeyOption();
     }
-    
+
+    @Test(expectedExceptions = ConfigurationException.class)
+    public void testEmptyPatternWhenPartitionKeyOptionIsPATTERN() {
+        AgentContext context = TestUtils.getTestAgentContext();
+        final String file = "/var/log/message*";
+        buildFileFlow(context, new Configuration(new HashMap<String, Object>() {{
+            put("filePattern", file);
+            put(getDestinationKey(), "des1");
+            put(KinesisConstants.PARTITION_KEY, "PATTERN");
+        }}));
+    }
+
     @DataProvider(name="badMaxBufferAgeMillisInConfig")
     @Override
     public Object[][] testMaxBufferAgeMillisInConfigData(){
