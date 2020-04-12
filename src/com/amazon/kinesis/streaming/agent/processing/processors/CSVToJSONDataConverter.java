@@ -13,12 +13,17 @@
  */
 package com.amazon.kinesis.streaming.agent.processing.processors;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
@@ -69,19 +74,29 @@ public class CSVToJSONDataConverter implements IDataConverter {
             dataStr = dataStr.substring(0, (dataStr.length() - NEW_LINE.length()));
         }
         
-        String[] columns = dataStr.split(delimiter);
-        
-        for (int i = 0; i < fieldNames.size(); i++) {
-            try {
-                recordMap.put(fieldNames.get(i), columns[i]);
-            } catch (ArrayIndexOutOfBoundsException e) {
-            	LoggerFactory.getLogger(getClass()).debug("Null field in CSV detected");
-                recordMap.put(fieldNames.get(i), null);
-            } catch (Exception e) {
-                throw new DataConversionException("Unable to create the column map", e);
-            }
-        }
-        
+    	CSVParser csvParser = null;
+		try {
+			if (delimiter.equals(",")) {
+				csvParser = CSVFormat.RFC4180.parse(new StringReader(dataStr));
+			} else {
+				csvParser = CSVFormat.TDF.withIgnoreSurroundingSpaces(false).parse(new StringReader(dataStr));
+			}
+	        CSVRecord csvRecord = csvParser.getRecords().get(0);
+	        
+	        for (int i = 0; i < fieldNames.size(); i++) {
+	            try {
+	                recordMap.put(fieldNames.get(i), csvRecord.get(i));
+	            } catch (ArrayIndexOutOfBoundsException e) {
+	            	LoggerFactory.getLogger(getClass()).debug("Null field in CSV detected");
+	                recordMap.put(fieldNames.get(i), null);
+	            } catch (Exception e) {
+	                throw new DataConversionException("Unable to create the column map", e);
+	            }
+	        }
+		} catch (IOException e) {
+			throw new DataConversionException("Unable to parse the CSV records.", e);
+		}
+    
         String dataJson = jsonProducer.writeAsString(recordMap) + NEW_LINE;
         
         return ByteBuffer.wrap(dataJson.getBytes(StandardCharsets.UTF_8));

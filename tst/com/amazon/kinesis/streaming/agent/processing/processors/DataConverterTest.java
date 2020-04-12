@@ -54,7 +54,7 @@ public class DataConverterTest {
             put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
         }});
         final IDataConverter converter = new CSVToJSONDataConverter(config);
-        final String dataStr = "value1, value2,valu\ne3,    value4\n";
+        final String dataStr = "value1, value2,\"valu\ne3\",    value4\n";
         final String expectedStr = "{\"column1\":\"value1\",\"column2\":\" value2\",\"column3\":\"valu\\ne3\",\"column4\":\"    value4\"}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
         
@@ -64,7 +64,11 @@ public class DataConverterTest {
         
         final String dataStrMoreThanColumns = "value1,value2,value3,value4,value5\n";
         final String expectedStrMoreThanColumns = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
-        verifyDataConversion(converter, dataStrMoreThanColumns.getBytes(), expectedStrMoreThanColumns.getBytes()); 
+        verifyDataConversion(converter, dataStrMoreThanColumns.getBytes(), expectedStrMoreThanColumns.getBytes());
+        
+        final String dataStrEmbeddedComma = "value1,\"val,ue2\",value3,value4\n";
+        final String expectedStrEmbeddedComma = "{\"column1\":\"value1\",\"column2\":\"val,ue2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStrEmbeddedComma.getBytes(), expectedStrEmbeddedComma.getBytes());
     }
     
     @SuppressWarnings("serial")
