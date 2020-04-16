@@ -35,7 +35,7 @@ RETVAL=0
 # load any configs/environment from /etc/default/<name>
 [ -e /etc/default/$DAEMON_NAME ] && . /etc/default/$DAEMON_NAME
 
-export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
+export JVM_ARGS="$JVM_ARGS -Dlog4j.configurationFile=file://$LOG_CONFIG "
 
 # Export the settings
 do_start () {

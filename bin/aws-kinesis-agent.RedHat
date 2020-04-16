@@ -67,7 +67,7 @@ do_start () {
   export AWS_ACCESS_KEY_ID
   export AWS_SECRET_ACCESS_KEY
   export AWS_DEFAULT_REGION
-  export JVM_ARGS="$JVM_ARGS -Dlog4j.configuration=file://$LOG_CONFIG "
+  export JVM_ARGS="$JVM_ARGS -Dlog4j.configurationFile=file://$LOG_CONFIG "
   
   DAEMON_NAME=$DAEMON_NAME nohup runuser $AGENT_USER -s /bin/sh -c "$DAEMON_EXEC $AGENT_ARGS $@" > $INITLOGFILE 2>&1 &
 
