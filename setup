@@ -92,14 +92,14 @@ download_jar() {
 }
 
 download_dependencies() {
-  which ant > /dev/null || $install_package ant
-  which wget > /dev/null || $install_package wget
-  
+  command -v ant > /dev/null || $install_package ant
+  command -v wget > /dev/null || $install_package wget
+
   install -d ${dependencies_dir}
-  
+
   echo "Downloading dependencies ..."
   aws_java_sdk_version="1.11.700"
-  
+
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
@@ -131,7 +131,8 @@ download_dependencies() {
                   com.beust:jcommander:1.48 \
                   org.xerial:sqlite-jdbc:3.20.1 \
                   joda-time:joda-time:2.8.2 \
-                  org.projectlombok:lombok:1.16.6"
+                  org.projectlombok:lombok:1.16.6 \
+                  com.opencsv:opencsv:5.1"
   
   for package in ${remote_mvn_pkg}
   do

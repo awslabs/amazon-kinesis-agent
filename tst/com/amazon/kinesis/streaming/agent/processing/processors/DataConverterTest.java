@@ -217,6 +217,19 @@ public class DataConverterTest {
         final String expectedStr = "{\"metadata\":{\"foo\":{\"bar\":\"bas\"},\"key\":\"value\"},\"data\":\"This is the data\"}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
     }
+
+    @Test
+    public void shouldSuccessfullyParseCsvWithQuotedSeparator() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,\"value2a, value2b\",value3,value4";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2a, value2b\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+    }
     
     private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {
         ByteBuffer data = ByteBuffer.wrap(dataBin);
