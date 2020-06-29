@@ -109,11 +109,12 @@ public class UserDefinedCredentialsProvider implements AWSCredentialsProvider{
                         addCustomCredentialsJarToClassPath(customCredentialsProvider, classPathList);
                     }
                     URL[] urlArray = new URL[classPathList.size()];
-                    URLClassLoader urlClassLoader = new URLClassLoader(classPathList.toArray(urlArray),
-                            ClassLoader.getSystemClassLoader());
-                    Class classToLoad = Class.forName(customCredentialsProvider.getLeft(), true,
-                            urlClassLoader);
-                    return (Class<AWSCredentialsProvider>) classToLoad;
+                    try (URLClassLoader urlClassLoader = new URLClassLoader(classPathList.toArray(urlArray),
+                            ClassLoader.getSystemClassLoader())) {
+                        Class classToLoad = Class.forName(customCredentialsProvider.getLeft(), true,
+                                urlClassLoader);
+                        return (Class<AWSCredentialsProvider>) classToLoad;
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Error loading user defined credentials provider. " + e);
                 }
