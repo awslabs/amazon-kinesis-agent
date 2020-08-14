@@ -95,7 +95,7 @@
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
-          <version>28.2-android</version>
+          <version>28.2-jre</version>
         </dependency>
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
@@ -155,12 +155,12 @@
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-1.2-api</artifactId>
-          <version>2.12.1</version>
+          <version>2.13.2</version>
         </dependency>
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-core</artifactId>
-          <version>2.12.1</version>
+          <version>2.13.2</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -171,7 +171,7 @@
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-slf4j-impl</artifactId>
-          <version>2.12.1</version>
+          <version>2.13.2</version>
           <exclusions>
             <exclusion>
               <groupId>log4j</groupId> 
