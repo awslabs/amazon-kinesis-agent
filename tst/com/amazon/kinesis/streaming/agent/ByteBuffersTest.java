@@ -111,9 +111,10 @@ public class ByteBuffersTest {
 
     @Test(expectedExceptions = EOFException.class)
     public void testReadFullyEOFException() throws IOException {
-        FileChannel mockChannel = mock(FileChannel.class);
-        when(mockChannel.read(any(ByteBuffer.class), anyInt())).thenReturn(-1);
-        ByteBuffers.readFully(mockChannel, 6, 8);
+        final File tmpFile = File.createTempFile("temp", "test");
+        tmpFile.deleteOnExit();
+        final FileChannel channel = FileChannel.open(tmpFile.toPath(), StandardOpenOption.READ);
+        ByteBuffers.readFully(channel, 6, 8);
     }
 
     @Test

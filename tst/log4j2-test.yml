@@ -1,0 +1,17 @@
+Configuration:
+  Appenders:
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "[%d{UTC}] [%t] [%c:%L] %highlight{[%p]}: %m %ex %n"
+        AlwaysWriteExceptions: false
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: Console
+    Logger:
+      - name: com.amazonaws.kinesis.streaming.agent
+        level: debug
