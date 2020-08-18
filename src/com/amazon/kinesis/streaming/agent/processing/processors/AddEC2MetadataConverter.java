@@ -47,8 +47,7 @@ import org.slf4j.LoggerFactory;
  *
  * Configuration of this converter looks like:
  * {
- *     "optionName": "ADDEC2METADATA",
- *     "logFormat": "RFC3339SYSLOG"
+ *     "optionName": "ADDEC2METADATA"
  * }
  *
  * @author buholzer
@@ -57,7 +56,6 @@ import org.slf4j.LoggerFactory;
 public class AddEC2MetadataConverter implements IDataConverter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AddEC2MetadataConverter.class);
-  private ILogParser logParser;
   private IJSONPrinter jsonProducer;
   private Map<String, Object> metadata;
   private long metadataTimestamp;
@@ -65,7 +63,6 @@ public class AddEC2MetadataConverter implements IDataConverter {
 
   public AddEC2MetadataConverter(Configuration config) {
     jsonProducer = ProcessingUtilsFactory.getPrinter(config);
-    logParser = ProcessingUtilsFactory.getLogParser(config);
 
     if (config.containsKey("metadataTTL")) {
       try {
