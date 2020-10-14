@@ -1,12 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
   <Appenders>
-     <File name="FILE" fileName="/var/log/aws-kinesis-agent/aws-kinesis-agent.log" append="true">
+     <RollingFile name="FILE" fileName="/var/log/aws-kinesis-agent/aws-kinesis-agent.log" filePattern="/var/log/aws-kinesis-agent/aws-kinesis-agent-%d{yyyy-MM-dd-HH}.log.gz">
         <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
-     </File>
-     <File name="FALLBACK" fileName="/tmp/fallback-aws-kinesis-agent.log" append="true">
+        <Policies>
+           <TimeBasedTriggeringPolicy />
+        </Policies>
+        <DefaultRolloverStrategy>
+           <Delete basePath="/var/log/aws-kinesis-agent" maxDepth="1">
+              <IfFileName glob="aws-kinesis-agent*log*" />
+              <IfLastModified age="7d" />
+           </Delete>
+        </DefaultRolloverStrategy>
+     </RollingFile>
+     <RollingFile name="FALLBACK" fileName="/tmp/fallback-aws-kinesis-agent.log" filePattern="/tmp/fallback-aws-kinesis-agent-%d{yyyy-MM-dd-HH}.log.gz">
         <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
-     </File>
+        <Policies>
+           <TimeBasedTriggeringPolicy />
+        </Policies>
+        <DefaultRolloverStrategy>
+           <Delete basePath="/tmp" maxDepth="1">
+              <IfFileName glob="fallback-aws-kinesis-agent*log*" />
+              <IfLastModified age="7d" />
+           </Delete>
+        </DefaultRolloverStrategy>
+     </RollingFile>
      <Console name="STDOUT" target="SYSTEM_OUT">
         <PatternLayout pattern="LOG: %d{yyyy-MM-dd HH:mm:ss.SSSZ} %X{hostname} (%t) %c [%p] %m%n" />
      </Console>
