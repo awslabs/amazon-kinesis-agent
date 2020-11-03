@@ -11,6 +11,7 @@ import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 
 import java.nio.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 
 public class DataConverterTest {
@@ -66,7 +67,81 @@ public class DataConverterTest {
         final String expectedStrMoreThanColumns = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
         verifyDataConversion(converter, dataStrMoreThanColumns.getBytes(), expectedStrMoreThanColumns.getBytes()); 
     }
-    
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testIgnoredFieldsWhenListIsEmpty() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+            put("ignoredFieldNames", Collections.emptyList());
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testIgnoredFieldsWhenListIsNotDefined() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testIgnoredFieldsWhenIgnoreColumnFromRightSide() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+            put("ignoredFieldNames", Arrays.asList("column4"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testIgnoredFieldsWhenIgnoreColumnFromLeftSide() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+            put("ignoredFieldNames", Arrays.asList("column1"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testIgnoredFieldsWhenIgnoreColumnFromMiddle() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+            put("ignoredFieldNames", Arrays.asList("column2","column3"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
     @SuppressWarnings("serial")
     @Test
     public void testCSVToJSONDataConverterConvertingTSV() throws Exception {
