@@ -144,6 +144,21 @@ public class DataConverterTest {
 
     @SuppressWarnings("serial")
     @Test
+    public void testIgnoredFieldsListContainNonExistsFields() throws Exception {
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+            put("ignoredFieldNames", Arrays.asList("column5","column6"));
+        }});
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
     public void testCSVToJSONDataConverterConvertingTSV() throws Exception {
         final Configuration config = new Configuration(new HashMap<String, Object>() {{
             put("optionName", "CSVTOJSON");
