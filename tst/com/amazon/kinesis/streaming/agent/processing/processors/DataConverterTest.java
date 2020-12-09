@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -231,14 +232,14 @@ public class DataConverterTest {
         final String dataStr = "This is the data";
         ByteBuffer converted = converter.convert(ByteBuffer.wrap(dataStr.getBytes()));
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (GZIPInputStream gis = new GZIPInputStream(new ByteBufferInputStream(converted))) {
+        try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(converted.array()))) {
             byte[] buffer = new byte[1024];
             int len;
             while ((len = gis.read(buffer)) > 0) {
                 bos.write(buffer, 0, len);
             }
         }
-        System.err.println(bos.toByteArray());
+        Assert.assertEquals(bos.toString(), dataStr);
     }
     
     private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {
