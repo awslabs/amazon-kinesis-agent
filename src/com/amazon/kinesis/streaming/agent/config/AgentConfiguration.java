@@ -48,6 +48,7 @@ public class AgentConfiguration extends Configuration {
     public static final String ASSUME_ROLE_EXTERNAL_ID = "assumeRoleExternalId";
     public static final String SHUTDOWN_TIMEOUT_MILLIS_KEY = "shutdownTimeoutMillis";
     public static final String ENDPOINT_KEY = "endpoint";
+    public static final String REGION_KEY = "region";
 
     public AgentConfiguration(Map<String, Object> config) {
         super(config);
@@ -175,6 +176,10 @@ public class AgentConfiguration extends Configuration {
     	return this.readString("kinesis." + ENDPOINT_KEY, null);
     }
     
+    public String kinesisRegion() {
+        return this.readString("kinesis." + REGION_KEY, null);
+    }
+
     public String firehoseEndpoint() {
         return this.readString("firehose." + ENDPOINT_KEY, null);
     }
