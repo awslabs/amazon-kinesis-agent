@@ -48,7 +48,8 @@ public class CLIWebIdentityTokenCredentialsProvider implements AWSCredentialsPro
             throw new IllegalStateException("Unable to retrieve Web Token Identity credentials from CLI.");
         }
 
-        if (DateTime.now(DateTimeZone.UTC).getMillis() >= expiration.getMillis()) {
+        // Refresh credentials when expiration is within 1 minute of current time
+        if (DateTime.now(DateTimeZone.UTC).plusMinutes(1).getMillis() >= expiration.getMillis()) {
             this.refresh();
         }
 
@@ -63,6 +64,16 @@ public class CLIWebIdentityTokenCredentialsProvider implements AWSCredentialsPro
             final String cmd = "aws sts assume-role-with-web-identity --role-session-name kinesis_agent --role-arn "
                 + this.roleArn + " --web-identity-token " + this.webIdentityToken + " --query Credentials --output yaml";
             this.getAssumedCredentials(Runtime.getRuntime().exec(cmd));
+            LOGGER.info("Finished credentials refresh");
+            if (this.accessKey.isEmpty()) {
+                LOGGER.error("Access key is empty after credentials refresh");
+            }
+            if (this.secretKey.isEmpty()) {
+                LOGGER.error("Secret key is empty after credentials refresh");
+            }
+            if (this.sessionToken.isEmpty()) {
+                LOGGER.error("Session token is empty after credentials refresh");
+            }
         } catch (IOException e) {
             this.resetCredentials();
             LOGGER.error("Unable to refresh Web Identity Token credentials from CLI.");
@@ -77,13 +88,11 @@ public class CLIWebIdentityTokenCredentialsProvider implements AWSCredentialsPro
     }
 
     private void getToken() throws IOException {
-        if (this.webIdentityToken.isEmpty()) {
-            final BufferedReader reader = new BufferedReader(new FileReader(System.getenv("AWS_WEB_IDENTITY_TOKEN_FILE")));
-            this.webIdentityToken = reader.readLine();
-            reader.close();
-            if (this.webIdentityToken == null || this.webIdentityToken.isEmpty()) {
-                throw new IOException("Error during Web Identity Token retrieval");
-            }
+        final BufferedReader reader = new BufferedReader(new FileReader(System.getenv("AWS_WEB_IDENTITY_TOKEN_FILE")));
+        this.webIdentityToken = reader.readLine();
+        reader.close();
+        if (this.webIdentityToken == null || this.webIdentityToken.isEmpty()) {
+            throw new IOException("Error during Web Identity Token retrieval");
         }
     }
 
