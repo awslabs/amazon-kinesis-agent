@@ -179,6 +179,11 @@ do_uninstall () {
 do_build () {
   download_dependencies
   
+  echo "Java version:"
+  java --version
+  echo "Ant version:"
+  ant --version
+  
   ant || fail "Failed to build the Java project"
 }
 
