@@ -19,6 +19,8 @@
     </path>
 
     <target name="get-java-version">
+      <echo message="${current.java.version}" />
+      <echo message="${ant.java.version}" />
       <condition property="current.java.version">
         <or>
           <equals arg1="${ant.java.version}" arg2="11"/>
