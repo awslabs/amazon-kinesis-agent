@@ -120,6 +120,7 @@ download_dependencies() {
                   org.apache.httpcomponents:httpcore-nio:4.4.15 \
                   commons-cli:commons-cli:1.5.0 \
                   commons-codec:commons-codec:1.15 \
+                  commons-logging:commons-logging:1.2 \
                   commons-logging:commons-logging-adapters:1.2 \
                   commons-logging:commons-logging-api:1.2 \
                   org.apache.commons:commons-lang3:3.12.0 \
