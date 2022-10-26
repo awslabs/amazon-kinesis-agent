@@ -57,7 +57,7 @@ public class AddMetadataConverter implements IDataConverter {
 
     public AddMetadataConverter(Configuration config) {
       metadata = config.getConfigMap().get("metadata");
-      timestamp = new Boolean((String) config.getConfigMap().get("timestamp"));
+      timestamp = Boolean.parseBoolean(config.getConfigMap().get("timestamp").toString());
       jsonProducer = ProcessingUtilsFactory.getPrinter(config);
     }
 

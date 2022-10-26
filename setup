@@ -182,7 +182,7 @@ do_build () {
   echo "Java version:"
   java --version
   echo "Ant version:"
-  ant --version
+  ant -version
   
   ant || fail "Failed to build the Java project"
 }
