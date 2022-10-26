@@ -98,40 +98,41 @@ download_dependencies() {
   install -d ${dependencies_dir}
   
   echo "Downloading dependencies ..."
-  aws_java_sdk_version="1.11.700"
+  aws_java_sdk_version="1.12.321"
   
   remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
-                  com.fasterxml.jackson.core:jackson-annotations:2.10.3\
-                  com.fasterxml.jackson.core:jackson-core:2.10.3 \
-                  com.fasterxml.jackson.core:jackson-databind:2.10.5.1 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.10.3 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.10.3 \
-                  com.google.code.findbugs:jsr305:3.0.1 \
-                  com.google.guava:guava:29.0-jre \
+                  com.fasterxml.jackson.core:jackson-annotations:2.14.0-rc2\
+                  com.fasterxml.jackson.core:jackson-core:2.14.0-rc2 \
+                  com.fasterxml.jackson.core:jackson-databind:2.14.0-rc2 \
+                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.0-rc2 \
+                  com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.14.0-rc2 \
+                  com.google.code.findbugs:jsr305:3.0.2 \
+                  com.google.guava:guava:31.1-jre \
                   org.apache.httpcomponents:httpclient:4.5.13 \
-                  org.apache.httpcomponents:httpclient-cache:4.5.1 \
-                  org.apache.httpcomponents:httpmime:4.5.1 \
-                  org.apache.httpcomponents:httpcore:4.4.3 \
-                  org.apache.httpcomponents:httpcore-ab:4.4.3 \
-                  org.apache.httpcomponents:httpcore-nio:4.4.3 \
-                  commons-cli:commons-cli:1.2 \
-                  commons-codec:commons-codec:1.6 \
-                  commons-logging:commons-logging-adapters:1.1 \
-                  commons-logging:commons-logging-api:1.1 \
-                  org.apache.commons:commons-lang3:3.4 \
+                  org.apache.httpcomponents:httpclient-cache:4.5.13 \
+                  org.apache.httpcomponents:httpmime:4.5.13 \
+                  org.apache.httpcomponents:httpcore:4.4.15 \
+                  org.apache.httpcomponents:httpcore-ab:4.4.15 \
+                  org.apache.httpcomponents:httpcore-nio:4.4.15 \
+                  commons-cli:commons-cli:1.5.0 \
+                  commons-codec:commons-codec:1.15 \
+                  commons-logging:commons-logging:1.2 \
+                  commons-logging:commons-logging-adapters:1.2 \
+                  commons-logging:commons-logging-api:1.2 \
+                  org.apache.commons:commons-lang3:3.12.0 \
                   org.apache.logging.log4j:log4j-1.2-api:2.17.1 \
                   org.apache.logging.log4j:log4j-api:2.17.1 \
                   org.apache.logging.log4j:log4j-core:2.17.1 \
                   org.apache.logging.log4j:log4j-slf4j-impl:2.17.1 \
                   org.slf4j:slf4j-api:1.7.12 \
-                  com.beust:jcommander:1.48 \
-                  org.xerial:sqlite-jdbc:3.20.1 \
-                  joda-time:joda-time:2.8.2 \
-                  org.projectlombok:lombok:1.16.6"
+                  com.beust:jcommander:1.82 \
+                  org.xerial:sqlite-jdbc:3.36.0.3 \
+                  joda-time:joda-time:2.11.2 \
+                  org.projectlombok:lombok:1.18.24"
   
   for package in ${remote_mvn_pkg}
   do
@@ -178,6 +179,11 @@ do_uninstall () {
 
 do_build () {
   download_dependencies
+  
+  echo "Java version:"
+  java --version
+  echo "Ant version:"
+  ant -version
   
   ant || fail "Failed to build the Java project"
 }
