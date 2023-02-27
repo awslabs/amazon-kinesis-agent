@@ -94,6 +94,7 @@ download_jar() {
 download_dependencies() {
   which ant > /dev/null || $install_package ant
   which wget > /dev/null || $install_package wget
+  which mvn > /dev/null || $install_package mvn
   
   install -d ${dependencies_dir}
   
@@ -105,7 +106,7 @@ download_dependencies() {
                   com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
                   com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
-                  com.fasterxml.jackson.core:jackson-annotations:2.14.0-rc2\
+                  com.fasterxml.jackson.core:jackson-annotations:2.14.0-rc2 \
                   com.fasterxml.jackson.core:jackson-core:2.14.0-rc2 \
                   com.fasterxml.jackson.core:jackson-databind:2.14.0-rc2 \
                   com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.14.0-rc2 \
