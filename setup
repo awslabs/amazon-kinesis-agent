@@ -94,7 +94,7 @@ download_jar() {
 download_dependencies() {
   which ant > /dev/null || $install_package ant
   which wget > /dev/null || $install_package wget
-  which maven > /dev/null || $install_package maven
+  apt-get install -y maven
   
   install -d ${dependencies_dir}
   
