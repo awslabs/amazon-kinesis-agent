@@ -94,7 +94,10 @@ download_jar() {
 download_dependencies() {
   which ant > /dev/null || $install_package ant
   which wget > /dev/null || $install_package wget
-  apt-get install -y maven
+  wget https://dlcdn.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.9.0-bin.tar.gz
+  sudo tar -zxvf apache-maven-3.9.0-bin.tar.gz
+  sudo mv apache-maven-3.9.0 /opt/maven
+  M2_HOME=/opt/maven
   
   install -d ${dependencies_dir}
   
@@ -137,7 +140,7 @@ download_dependencies() {
   
   for package in ${remote_mvn_pkg}
   do
-    mvn dependency:get -Dartifact=$package:jar-with-dependencies
+    ${M2_HOME}/mvn dependency:get -Dartifact=$package:jar-with-dependencies
    #download_jar $(echo $package | tr : " ")
   done
 }
