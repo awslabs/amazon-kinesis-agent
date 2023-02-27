@@ -96,8 +96,8 @@ download_dependencies() {
   which wget > /dev/null || $install_package wget
   M2_VERSION="3.9.0"
   wget https://dlcdn.apache.org/maven/maven-3/${M2_VERSION}/binaries/apache-maven-${M2_VERSION}-bin.tar.gz
-  sudo tar -zxvf apache-maven-${M2_VERSION}-bin.tar.gz
-  sudo mv apache-maven-${M2_VERSION} /opt/maven
+  tar -zxvf apache-maven-${M2_VERSION}-bin.tar.gz
+  mv apache-maven-${M2_VERSION} /opt/maven
   M2_HOME=/opt/maven
   
   install -d ${dependencies_dir}
