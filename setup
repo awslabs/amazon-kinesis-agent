@@ -72,7 +72,7 @@ download_jar() {
   group_id=$1
   artifact_id=$2
   version=$3
-  prefix="http://search.maven.org/remotecontent?filepath="
+  prefix="https://repo1.maven.org/maven2/"
   path=${group_id//.//}
   jar_name=$artifact_id-$version.jar
   tmp_dest=$(mktemp -u)
