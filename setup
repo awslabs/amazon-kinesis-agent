@@ -141,8 +141,8 @@ download_dependencies() {
   
   for package in ${remote_mvn_pkg}
   do
-    ${M2_HOME}/bin/mvn dependency:get -Dartifact=$package:jar-with-dependencies
-   #download_jar $(echo $package | tr : " ")
+   #${M2_HOME}/bin/mvn dependency:get -Dartifact=$package:jar-with-dependencies
+   download_jar $(echo $package | tr : " ")
   done
 }
 
