@@ -84,7 +84,9 @@ download_jar_s3() {
   [[ -f ${jar_dest} ]] && return
 
   # download the file to a temp location, then if move it here if successful
-  echo "Downloading $jar_name ($url)..."
+  echo "Downloading $jar_name ($s3_url)..."
+  echo "tmp_dest: ${tmp_dest}"
+  echo "jar_dest: ${jar_dest}"
   aws s3 cp ${s3_url} ${tmp_dest} && \
     mv ${tmp_dest} ${jar_dest}
 
