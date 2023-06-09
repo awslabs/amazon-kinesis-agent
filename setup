@@ -87,8 +87,10 @@ download_jar_s3() {
   echo "Downloading $jar_name ($s3_url)..."
   echo "tmp_dest: ${tmp_dest}"
   echo "jar_dest: ${jar_dest}"
-  aws s3 cp ${s3_url} ${tmp_dest} && \
-    mv ${tmp_dest} ${jar_dest}
+  # aws s3 cp ${s3_url} ${tmp_dest} && \
+  #   mv ${tmp_dest} ${jar_dest}
+  aws s3 cp ${s3_url} ${dependencies_dir}/
+  ls -la ${dependencies_dir}
 
   # Purge our temp file regardless of the status here
   rm -f ${tmp_dest}
