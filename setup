@@ -84,17 +84,8 @@ download_jar_s3() {
   [[ -f ${jar_dest} ]] && return
 
   # download the file to a temp location, then if move it here if successful
-  echo "Downloading $jar_name ($s3_url)..."
-  echo "tmp_dest: ${tmp_dest}"
-  echo "jar_dest: ${jar_dest}"
-  echo "dependencies_dir: $(pwd)/${dependencies_dir}"
-  # aws s3 cp ${s3_url} ${tmp_dest} && \
-  #   mv ${tmp_dest} ${jar_dest}
+  echo "Downloading $jar_name ($s3_url) to ${dependencies_dir}..."
   aws s3 cp ${s3_url} ${dependencies_dir}/
-  ls -la ${dependencies_dir}
-
-  # Purge our temp file regardless of the status here
-  rm -f ${tmp_dest}
 }
 
 download_jar() {
