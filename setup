@@ -68,6 +68,30 @@ fail() {
   exit 1
 }
 
+download_jar_s3() {
+  group_id=$1
+  artifact_id=$2
+  version=$3
+  s3_bucket=$4
+  s3_prefix="repo1.maven.org/maven2"
+  path=${group_id//.//}
+  jar_name=$artifact_id-$version.jar
+  tmp_dest=$(mktemp -u)
+  jar_dest=$dependencies_dir/$jar_name
+  s3_url=${s3_bucket}/${s3_prefix}/${path}/${artifact_id}/${version}/${jar_name}
+  
+  # file exists? then don't download it!
+  [[ -f ${jar_dest} ]] && return
+
+  # download the file to a temp location, then if move it here if successful
+  echo "Downloading $jar_name ($url)..."
+  aws s3 cp ${s3_url} ${tmp_dest} && \
+    mv ${tmp_dest} ${jar_dest}
+
+  # Purge our temp file regardless of the status here
+  rm -f ${tmp_dest}
+}
+
 download_jar() {
   group_id=$1
   artifact_id=$2
@@ -94,8 +118,10 @@ download_jar() {
 download_dependencies() {
   which ant > /dev/null || $install_package ant
   which wget > /dev/null || $install_package wget
-  M2_VERSION="3.9.1"
-  wget https://dlcdn.apache.org/maven/maven-3/${M2_VERSION}/binaries/apache-maven-${M2_VERSION}-bin.tar.gz
+  s3_bucket="s3://gsai-s3-common-all-install-binaries/maven"
+  M2_VERSION="3.9.2"
+  #wget https://dlcdn.apache.org/maven/maven-3/${M2_VERSION}/binaries/apache-maven-${M2_VERSION}-bin.tar.gz
+  aws s3 cp ${s3_bucket}/dlcdn.apache.org/maven/maven-3/${M2_VERSION}/binaries/apache-maven-${M2_VERSION}-bin.tar.gz .
   tar -zxvf apache-maven-${M2_VERSION}-bin.tar.gz
   mv apache-maven-${M2_VERSION} /opt/maven
   M2_HOME=/opt/maven
@@ -142,7 +168,7 @@ download_dependencies() {
   for package in ${remote_mvn_pkg}
   do
    #${M2_HOME}/bin/mvn dependency:get -Dartifact=$package:jar-with-dependencies
-   download_jar $(echo $package | tr : " ")
+   download_jar_s3 $(echo $package | tr : " ") "${s3_bucket}"
   done
 }
 
