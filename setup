@@ -87,6 +87,7 @@ download_jar_s3() {
   echo "Downloading $jar_name ($s3_url)..."
   echo "tmp_dest: ${tmp_dest}"
   echo "jar_dest: ${jar_dest}"
+  echo "dependencies_dir: $(pwd)/${dependencies_dir}"
   # aws s3 cp ${s3_url} ${tmp_dest} && \
   #   mv ${tmp_dest} ${jar_dest}
   aws s3 cp ${s3_url} ${dependencies_dir}/
