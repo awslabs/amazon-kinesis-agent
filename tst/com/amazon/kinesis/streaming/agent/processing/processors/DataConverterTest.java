@@ -3,15 +3,23 @@
  */
 package com.amazon.kinesis.streaming.agent.processing.processors;
 
+import com.amazon.kinesis.streaming.agent.ByteBufferInputStream;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.*;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.zip.GZIPInputStream;
+
+
 
 public class DataConverterTest {
     
@@ -216,6 +224,22 @@ public class DataConverterTest {
         final String dataStr = "This is the data";
         final String expectedStr = "{\"metadata\":{\"foo\":{\"bar\":\"bas\"},\"key\":\"value\"},\"data\":\"This is the data\"}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
+    }
+
+    @Test
+    public void testGzipDataConverter() throws Exception {
+        final IDataConverter converter = new GzipDataConverter();
+        final String dataStr = "This is the data";
+        ByteBuffer converted = converter.convert(ByteBuffer.wrap(dataStr.getBytes()));
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(converted.array()))) {
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = gis.read(buffer)) > 0) {
+                bos.write(buffer, 0, len);
+            }
+        }
+        Assert.assertEquals(bos.toString(), dataStr);
     }
     
     private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {

@@ -26,6 +26,7 @@ import com.amazon.kinesis.streaming.agent.processing.processors.AddEC2MetadataCo
 import com.amazon.kinesis.streaming.agent.processing.processors.AddMetadataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.BracketsDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.CSVToJSONDataConverter;
+import com.amazon.kinesis.streaming.agent.processing.processors.GzipDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.LogToJSONDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.PluggableDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.processors.SingleLineDataConverter;
@@ -49,7 +50,8 @@ public class ProcessingUtilsFactory {
         CSVTOJSON,
         LOGTOJSON,
         ADDBRACKETS,
-        USINGPLUGGIN
+        USINGPLUGGIN,
+        GZIPCOMPRESSION
     }
     
     public static enum LogFormat {
@@ -133,6 +135,8 @@ public class ProcessingUtilsFactory {
                 return new BracketsDataConverter();
             case USINGPLUGGIN:
                 return new PluggableDataConverter(config);
+            case GZIPCOMPRESSION:
+                return new GzipDataConverter();
             default:
                 throw new ConfigurationException(
                         "Specified option is not implemented yet: " + option);
