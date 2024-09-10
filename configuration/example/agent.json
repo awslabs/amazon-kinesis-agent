@@ -5,7 +5,7 @@
   "kinesis.endpoint": "https://kinesis.us-west-2.amazonaws.com",
   "awsAccessKeyId": "ACCESSKEY",
   "awsSecretAccessKey": "SECRETKEY",
-  "userDefinedCredentialsProvider.className":"com.amazonaws.samples.NewCustomCredentialsProvider",
+  "userDefinedCredentialsProvider.classname":"com.amazonaws.samples.NewCustomCredentialsProvider",
   "userDefinedCredentialsProvider.location":"/home/ec2-user/NewCustomCredentialsProvider.jar",
   "flows": [
     {
