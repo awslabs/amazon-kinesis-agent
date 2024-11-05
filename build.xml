@@ -33,7 +33,7 @@
       </condition>
     </target>
     <target name="check-java-version" depends="get-java-version" unless="current.java.version">
-        <fail message="Unsupported Java version: ${ant.java.version}. Make sure that the Java version is 1.8 or greater."/>
+        <fail message="Unsupported Java version: ${ant.java.version}. Make sure that the Java version is 1.8 or between 11 and 17."/>
     </target>
     
     <target name="init">
