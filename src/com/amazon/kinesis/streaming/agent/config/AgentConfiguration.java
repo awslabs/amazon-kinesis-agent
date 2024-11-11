@@ -175,7 +175,7 @@ public class AgentConfiguration extends Configuration {
     public String kinesisEndpoint() {
     	return this.readString("kinesis." + ENDPOINT_KEY, null);
     }
-    
+
     public String kinesisRegion() {
         return this.readString("kinesis." + REGION_KEY, null);
     }
