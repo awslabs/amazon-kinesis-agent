@@ -29,6 +29,10 @@
           <equals arg1="${ant.java.version}" arg2="15"/>
           <equals arg1="${ant.java.version}" arg2="16"/>
           <equals arg1="${ant.java.version}" arg2="17"/>
+          <equals arg1="${ant.java.version}" arg2="18"/>
+          <equals arg1="${ant.java.version}" arg2="19"/>
+          <equals arg1="${ant.java.version}" arg2="20"/>
+          <equals arg1="${ant.java.version}" arg2="21"/>
         </or>
       </condition>
     </target>
