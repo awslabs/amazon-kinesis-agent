@@ -3,6 +3,8 @@
  */
 package com.amazon.kinesis.streaming.agent.processing.processors;
 
+import com.amazon.kinesis.streaming.agent.config.ConfigurationException;
+import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -12,6 +14,7 @@ import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import java.nio.*;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 public class DataConverterTest {
     
@@ -216,6 +219,239 @@ public class DataConverterTest {
         final String dataStr = "This is the data";
         final String expectedStr = "{\"metadata\":{\"foo\":{\"bar\":\"bas\"},\"key\":\"value\"},\"data\":\"This is the data\"}\n";
         verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes()); 
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverter() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+        hashmap2.put("timezone", "UTC");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        final String expectedStr = "{\"time\":\"2020-11-15 07:21:00\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverterIfInputFormatterWrongWeRemainPreviousDate() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "boom!");
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+        hashmap2.put("timezone", "UTC");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        final String expectedStr = "{\"time\":\"2020-11-15 09:21:00+0200\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverterIfOutputFormatterWrongWeRemainPreviousDate() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+        hashmap.put("output", "boom!");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+        hashmap2.put("timezone", "UTC");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        final String expectedStr = "{\"time\":\"2020-11-15 09:21:00+0200\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverterDateIsNotDate() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+        hashmap2.put("timezone", "UTC");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "boom!\n";
+        final String expectedStr = "{\"time\":\"boom!\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test(
+            expectedExceptions = ConfigurationException.class
+    )
+    public void testTimeConverterBadStructure() throws Exception {
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", "boom!");
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverterKeyNotExist() throws Exception {
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        final String expectedStr = "{\"time\":\"2020-11-15 09:21:00+0200\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testTimeConverterTimeZoneIsEmptyRemainOldTimezone() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        final String expectedStr = "{\"time\":\"2020-11-15 09:21:00\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test(
+            expectedExceptions = DataConversionException.class,
+            expectedExceptionsMessageRegExp = "input is not defined"
+    )
+    public void testTimeConverterInputIsEmpty() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        converter.convert(ByteBuffer.wrap(dataStr.getBytes()));
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test(
+            expectedExceptions = DataConversionException.class,
+            expectedExceptionsMessageRegExp = "output is not defined"
+    )
+    public void testTimeConverterOutputIsEmpty() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        converter.convert(ByteBuffer.wrap(dataStr.getBytes()));
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test(
+            expectedExceptions = DataConversionException.class,
+            expectedExceptionsMessageRegExp = "Such timezone does not exists"
+    )
+    public void testTimeConverterTimezoneIsWrong() throws Exception {
+
+        final Map<String, Object> hashmap = new HashMap<String, Object>();
+        hashmap.put("input", "yyyy-MM-dd HH:mm:ssZ");
+        hashmap.put("output", "yyyy-MM-dd HH:mm:ss");
+
+        final Map<String, Object> hashmap2 = new HashMap<String, Object>();
+        hashmap2.put("time", hashmap);
+        hashmap2.put("timezone", "boom!");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("timeConverter", hashmap2);
+            put("customFieldNames", Arrays.asList("time"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "2020-11-15 09:21:00+0200\n";
+        converter.convert(ByteBuffer.wrap(dataStr.getBytes()));
+
     }
     
     private void verifyDataConversion(IDataConverter converter, byte[] dataBin, byte[] expectedBin) throws Exception {
