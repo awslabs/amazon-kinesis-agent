@@ -6,7 +6,7 @@
     <artifactId>amazon-kinesis-agent</artifactId>
     <packaging>jar</packaging>
     <name>Amazon Kinesis Agent</name>
-    <version>2.0.10</version>
+    <version>2.0.11</version>
     <description>Amazon Kinesis Agent runs on customer hosts and continuously monitors a set of log files and sends new data to the Amazon Kinesis Stream and Amazon Kinesis Firehose services in near-real-time.</description>
     <url>https://aws.amazon.com/kinesis</url>
 
@@ -182,7 +182,7 @@
         <dependency>
           <groupId>org.xerial</groupId>
           <artifactId>sqlite-jdbc</artifactId>
-          <version>3.41.2.2</version>
+          <version>3.49.0.0</version>
         </dependency>
         <dependency>
           <groupId>joda-time</groupId>
