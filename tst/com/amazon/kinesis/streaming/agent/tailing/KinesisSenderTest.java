@@ -107,7 +107,7 @@ public class KinesisSenderTest extends TailingTestBase {
             }
         });
         context = Mockito.spy(context);
-        Mockito.when(context.getKinesisClient()).thenReturn(kinesisClient);
+        Mockito.doReturn(kinesisClient).when(context).getKinesisClient();
         KinesisSender sender = new KinesisSender(context, flow);
         List<KinesisRecord> recordsInBuffer = Lists.newArrayList(testBuffer);
         BufferSendResult<KinesisRecord> result = sender.sendBuffer(testBuffer);
@@ -153,7 +153,7 @@ public class KinesisSenderTest extends TailingTestBase {
             }
         });
         context = Mockito.spy(context);
-        Mockito.when(context.getKinesisClient()).thenReturn(kinesisClient);
+        Mockito.doReturn(kinesisClient).when(context).getKinesisClient();
         KinesisSender sender = new KinesisSender(context, flow);
         for(int i = 0; i < successiveFailedRecords.length; ++i) {
             Assert.assertTrue(successiveFailedRecords[i].length > 0, "Failed records array cannot be empty in this test!");
@@ -185,7 +185,7 @@ public class KinesisSenderTest extends TailingTestBase {
         Mockito.when(kinesisClient.putRecords(Mockito.any(PutRecordsRequest.class))).
             thenThrow(AmazonServiceException.class);
         context = Mockito.spy(context);
-        Mockito.when(context.getKinesisClient()).thenReturn(kinesisClient);
+        Mockito.doReturn(kinesisClient).when(context).getKinesisClient();
         KinesisSender sender = new KinesisSender(context, flow);
         sender.sendBuffer(testBuffer);
     }
