@@ -41,10 +41,10 @@ import com.amazon.kinesis.streaming.agent.tailing.FileFlowFactory;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
@@ -174,12 +174,25 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     
     public synchronized AmazonKinesisClient getKinesisClient() {
         if (kinesisClient == null) {
-            kinesisClient = new AmazonKinesisClient(
-                    getAwsCredentialsProvider(), getAwsClientConfiguration());
-            if (!Strings.isNullOrEmpty(kinesisEndpoint()))
-            	kinesisClient.setEndpoint(kinesisEndpoint());
-            if (!Strings.isNullOrEmpty(kinesisRegion()))
-                kinesisClient.setRegion(Region.getRegion(Regions.fromName(kinesisRegion())));
+            AmazonKinesisClientBuilder kinesisClientBuilder = AmazonKinesisClientBuilder.standard()
+                    .withCredentials(getAwsCredentialsProvider())
+                    .withClientConfiguration(getAwsClientConfiguration());
+            if (!Strings.isNullOrEmpty(kinesisEndpoint()) && !Strings.isNullOrEmpty(kinesisRegion())) {
+                kinesisClientBuilder.withEndpointConfiguration(new EndpointConfiguration(
+                        kinesisEndpoint(), kinesisRegion()));
+            }
+            else if (!Strings.isNullOrEmpty(kinesisRegion())) {
+                kinesisClientBuilder.withRegion(kinesisRegion());
+            }
+            kinesisClient = (AmazonKinesisClient) kinesisClientBuilder.build();
+
+            // Edge case to maintain backwards compatability
+            // A previous commit allowed setting kinesis.endpoint without kinesis.region; however, this overrides
+            // the region if both of the properties are set. This maintains that functionality so users who have
+            // only provided kinesis.endpoint will not break when upgrading to this commit
+            if (!Strings.isNullOrEmpty(kinesisEndpoint()) && Strings.isNullOrEmpty(kinesisRegion())) {
+                kinesisClient.setEndpoint(kinesisEndpoint());
+            }
         }
         return kinesisClient;
     }
