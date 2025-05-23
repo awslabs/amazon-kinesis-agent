@@ -24,6 +24,7 @@ import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazon.kinesis.streaming.agent.Agent;
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
 import com.amazon.kinesis.streaming.agent.metrics.Metrics;
@@ -113,19 +114,34 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
 
     @Override
     public void run() {
-        do {
-            if (0 == runOnce() && !isNewFile) {
-                // Sleep only if the previous run did not process any records
-                if(isRunning() && minTimeBetweenFilePollsMillis > 0) {
-                    try {
-                        Thread.sleep(minTimeBetweenFilePollsMillis);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        LOGGER.trace("{}: Thread interrupted", e);
+        try {
+            do {
+                if (0 == runOnce() && !isNewFile) {
+                    // Sleep only if the previous run did not process any records
+                    if(isRunning() && minTimeBetweenFilePollsMillis > 0) {
+                        try {
+                            Thread.sleep(minTimeBetweenFilePollsMillis);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            LOGGER.trace("{}: Thread interrupted", e);
+                        }
                     }
                 }
+            } while (isRunning());
+        } catch (Throwable t) {
+            String fatalMessage = "Fatal error in FileTailer - shutting down agent";
+            try {
+                try {
+                    LOGGER.error(fatalMessage, t);
+                } finally {
+                    System.err.println(fatalMessage);
+                    t.printStackTrace();
+                }
+            } finally {
+                Agent.setDontShutdownOnExit(true);
+                System.exit(1);
             }
-        } while (isRunning());
+        }
     }
 
     protected int runOnce() {

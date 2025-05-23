@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import lombok.Setter;
+
 import com.amazon.kinesis.streaming.agent.config.AgentConfiguration;
 import com.amazon.kinesis.streaming.agent.config.AgentOptions;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
@@ -50,6 +52,7 @@ import com.google.common.util.concurrent.MoreExecutors;
  * Main class for AWS Firehose Agent.
  */
 public class Agent extends AbstractIdleService implements IHeartbeatProvider {
+    @Setter
     private static volatile boolean dontShutdownOnExit = false;
 
     public static void main(String[] args) throws Exception {
