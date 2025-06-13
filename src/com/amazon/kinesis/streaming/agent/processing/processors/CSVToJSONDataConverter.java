@@ -15,6 +15,7 @@ package com.amazon.kinesis.streaming.agent.processing.processors;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,11 +53,20 @@ public class CSVToJSONDataConverter implements IDataConverter {
     private final List<String> fieldNames;
     private final String delimiter;
     private final IJSONPrinter jsonProducer;
+    private static String STATIC_FIELDS_KEY = "staticFields";
+    private final Map<String, Object> staticFields;
     
     public CSVToJSONDataConverter(Configuration config) {
         fieldNames = config.readList(FIELDS_KEY, String.class);
         delimiter = config.readString(DELIMITER_KEY, ",");
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
+
+        if(config.containsKey(STATIC_FIELDS_KEY)){
+            Configuration configuration = config.readConfiguration(STATIC_FIELDS_KEY);
+            staticFields = configuration.getConfigMap();
+        } else {
+            staticFields = new HashMap<String, Object>();
+        }
     }
 
     @Override
@@ -81,7 +91,11 @@ public class CSVToJSONDataConverter implements IDataConverter {
                 throw new DataConversionException("Unable to create the column map", e);
             }
         }
-        
+
+        for (String key : staticFields.keySet()) {
+            recordMap.put(key, staticFields.get(key));
+        }
+
         String dataJson = jsonProducer.writeAsString(recordMap) + NEW_LINE;
         
         return ByteBuffer.wrap(dataJson.getBytes(StandardCharsets.UTF_8));
