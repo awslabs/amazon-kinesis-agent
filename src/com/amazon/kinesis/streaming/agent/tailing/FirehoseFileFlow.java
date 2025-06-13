@@ -54,6 +54,10 @@ public class FirehoseFileFlow extends FileFlow<FirehoseRecord> {
         if (recordSizeHint > 0 && recordSplitter instanceof SingleLineSplitter) {
             recordSplitter = new AggregationSplitter(recordSizeHint);
         }
+        if(recordSizeHint > 0 && recordSplitter instanceof RegexSplitter) {
+            String pattern = ((RegexSplitter)recordSplitter).startingPattern.pattern();
+            recordSplitter = new RegexAggregationSplitter(pattern,recordSizeHint);
+        }
     }
 
     @Override
