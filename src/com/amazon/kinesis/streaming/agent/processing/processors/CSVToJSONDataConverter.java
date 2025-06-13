@@ -15,6 +15,7 @@ package com.amazon.kinesis.streaming.agent.processing.processors;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,14 +50,17 @@ public class CSVToJSONDataConverter implements IDataConverter {
     
     private static String FIELDS_KEY = "customFieldNames";
     private static String DELIMITER_KEY = "delimiter";
+    private static String IGNORED_FIELDS_KEY = "ignoredFieldNames";
     private final List<String> fieldNames;
     private final String delimiter;
     private final IJSONPrinter jsonProducer;
-    
+    private final List<String> ignoredFieldNames;
+
     public CSVToJSONDataConverter(Configuration config) {
         fieldNames = config.readList(FIELDS_KEY, String.class);
         delimiter = config.readString(DELIMITER_KEY, ",");
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
+        ignoredFieldNames = config.readList(IGNORED_FIELDS_KEY, String.class, Collections.<String>emptyList());
     }
 
     @Override
@@ -81,7 +85,11 @@ public class CSVToJSONDataConverter implements IDataConverter {
                 throw new DataConversionException("Unable to create the column map", e);
             }
         }
-        
+
+        for (String fieldName: ignoredFieldNames) {
+            recordMap.remove(fieldName);
+        }
+
         String dataJson = jsonProducer.writeAsString(recordMap) + NEW_LINE;
         
         return ByteBuffer.wrap(dataJson.getBytes(StandardCharsets.UTF_8));
