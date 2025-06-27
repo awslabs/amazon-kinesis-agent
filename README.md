@@ -6,6 +6,10 @@ The **Amazon Kinesis Agent** is a stand-alone Java software application that off
 * [Forum][kinesis-forum]
 * [Issues][kinesis-agent-issues]
 
+> [!IMPORTANT]
+> ### Please upgrade to Kinesis Agent version 2.0.12 to reduce the risk of potential log processing failures
+> We have discovered an issue in Kinesis Agent versions prior to 2.0.12 that may cause the log tailer thread to silently cease functioning. We strongly recommend upgrading Kinesis Agent to version 2.0.12 or later where this issue is resolved. For any additional questions or concerns, please reach out to AWS Support.
+
 ## Features
 
 * Monitors file patterns and sends new data records to delivery streams
