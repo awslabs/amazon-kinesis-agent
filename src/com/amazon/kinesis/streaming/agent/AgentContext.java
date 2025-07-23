@@ -174,24 +174,26 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
     
     public synchronized AmazonKinesisClient getKinesisClient() {
         if (kinesisClient == null) {
-            AmazonKinesisClientBuilder kinesisClientBuilder = AmazonKinesisClientBuilder.standard()
-                    .withCredentials(getAwsCredentialsProvider())
-                    .withClientConfiguration(getAwsClientConfiguration());
-            if (!Strings.isNullOrEmpty(kinesisEndpoint()) && !Strings.isNullOrEmpty(kinesisRegion())) {
-                kinesisClientBuilder.withEndpointConfiguration(new EndpointConfiguration(
-                        kinesisEndpoint(), kinesisRegion()));
-            }
-            else if (!Strings.isNullOrEmpty(kinesisRegion())) {
-                kinesisClientBuilder.withRegion(kinesisRegion());
-            }
-            kinesisClient = (AmazonKinesisClient) kinesisClientBuilder.build();
-
-            // Edge case to maintain backwards compatability
-            // A previous commit allowed setting kinesis.endpoint without kinesis.region; however, this overrides
-            // the region if both of the properties are set. This maintains that functionality so users who have
-            // only provided kinesis.endpoint will not break when upgrading to this commit
             if (!Strings.isNullOrEmpty(kinesisEndpoint()) && Strings.isNullOrEmpty(kinesisRegion())) {
+                // Edge case to maintain backwards compatability
+                // A previous commit allowed setting kinesis.endpoint without kinesis.region; however, this overrides
+                // the region if both of the properties are set. This maintains that functionality so users who have
+                // only provided kinesis.endpoint will not break when upgrading to this commit
+                kinesisClient = new AmazonKinesisClient(
+                        getAwsCredentialsProvider(), getAwsClientConfiguration());
                 kinesisClient.setEndpoint(kinesisEndpoint());
+            } else {
+                AmazonKinesisClientBuilder kinesisClientBuilder = AmazonKinesisClientBuilder.standard()
+                        .withCredentials(getAwsCredentialsProvider())
+                        .withClientConfiguration(getAwsClientConfiguration());
+                if (!Strings.isNullOrEmpty(kinesisEndpoint()) && !Strings.isNullOrEmpty(kinesisRegion())) {
+                    kinesisClientBuilder.withEndpointConfiguration(new EndpointConfiguration(
+                            kinesisEndpoint(), kinesisRegion()));
+                }
+                else if (!Strings.isNullOrEmpty(kinesisRegion())) {
+                    kinesisClientBuilder.withRegion(kinesisRegion());
+                }
+                kinesisClient = (AmazonKinesisClient) kinesisClientBuilder.build();
             }
         }
         return kinesisClient;
