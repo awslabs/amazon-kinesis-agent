@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.amazonaws.services.kinesis.AmazonKinesis;
 import lombok.Getter;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
@@ -47,6 +48,7 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
 
     @Getter private final AgentContext agentContext;
     private final KinesisFileFlow flow;
+    private final AmazonKinesis kinesisClient;
 
     private final AtomicLong totalRecordsAttempted = new AtomicLong();
     private final AtomicLong totalRecordsSent = new AtomicLong();
@@ -62,6 +64,7 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
         Preconditions.checkNotNull(flow);
         this.agentContext = agentContext;
         this.flow = flow;
+        this.kinesisClient = agentContext.getKinesisClient();
     }
 
     @Override
@@ -100,7 +103,7 @@ public class KinesisSender extends AbstractSender<KinesisRecord> {
             try {
                 logger.trace("{}: Sending buffer {} to kinesis stream {}...", flow.getId(), buffer, getDestination());
                 metrics.addCount(RECORDS_ATTEMPTED_METRIC, requestRecords.size());
-                result = agentContext.getKinesisClient().putRecords(request);
+                result = kinesisClient.putRecords(request);
                 metrics.addCount(SERVICE_ERRORS_METRIC, 0);
             } catch (AmazonServiceException e) {
                 metrics.addCount(SERVICE_ERRORS_METRIC, 1);
