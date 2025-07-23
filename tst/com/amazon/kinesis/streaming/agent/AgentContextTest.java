@@ -9,6 +9,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,24 +32,24 @@ public class AgentContextTest {
 
     @Test
     public void testVersion() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));
         assertNotNull(context.version());
         assertNotEquals(context.version(), "x.x");
     }
 
     @Test
     public void testDefaultUserAgent() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));
         context = spy(context);
         when(context.version()).thenReturn("0.1");
         ClientConfiguration config = new ClientConfiguration();
         String userAgent = context.userAgent(config);
         assertTrue(userAgent.startsWith(AgentContext.DEFAULT_USER_AGENT + "/0.1"));
     }
-    
+
     @Test
     public void testInstanceTag() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));
         context = spy(context);
         assertNotNull(context.getInstanceTag());
     }
@@ -72,7 +73,7 @@ public class AgentContextTest {
 
     @Test
     public void testGetAWSClientConfiguration() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));
         context = spy(context);
         when(context.version()).thenReturn("0.1");
         ClientConfiguration config = context.getAwsClientConfiguration();
@@ -87,7 +88,7 @@ public class AgentContextTest {
 
     @Test
     public void testFlows() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));
 
         assertEquals(context.flows().size(), 2);
         assertEquals(context.flows().get(0).getDestination(), "fh1");
@@ -98,6 +99,16 @@ public class AgentContextTest {
         assertEquals(context.flows().get(1).getDestination(), "fh2");
         assertEquals(context.flows().get(1).getSourceFile().getDirectory().toString(), "/");
         assertEquals(context.flows().get(1).getSourceFile().getFilePattern().toString(), "prefix2*");
+    }
+
+    @Test
+    public void testConfigurationWithOnlySettingKinesisEndpoint() throws IOException {
+        AgentContext context = new AgentContext(getTestConfiguration("./resources/agentConfigOnlyEndpoint.json"));
+        try {
+            context.getKinesisClient();
+        } catch (Exception e) {
+            fail("Should not throw an exception", e);
+        }
     }
 
 }
