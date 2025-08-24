@@ -36,6 +36,7 @@ import com.google.common.collect.Range;
 import com.google.common.primitives.Doubles;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import org.apache.commons.lang3.text.StrSubstitutor;
 
 /**
  * Class to handle reading configurations. A configuration is essentially a
@@ -111,7 +112,7 @@ public class Configuration {
      */
     public Configuration(Map<String, Object> map) {
         Preconditions.checkNotNull(map);
-        this.configMap = map;
+        this.configMap = expandEnvironmentVariables(map);
         this.stringConverter = new Function<Object, String>() {
             @Override
             @Nullable
@@ -158,6 +159,38 @@ public class Configuration {
         this.configurationReader = new ScalarValueReader<>(Configuration.class,
                 this.configurationConverter);
         this.readers.put(Configuration.class, this.configurationReader);
+    }
+
+    private static Map<String, Object> expandEnvironmentVariables(
+            Map<String, Object> map) {
+        return substituteVariables(map, System.getenv());
+    }
+
+    /**
+     * Replaces all the occurrences of variables in <code>input</code> map with
+     * their matching values from the <code>variables</code> map. The definition of a
+     * variable uses ${variableName} notation.
+     *
+     * @param input     Replaces all the occurrences of variables in the input map with
+     *                  their matching values from the variables map.
+     * @param variables Contains the values to substitute.
+     * @return The result map.
+     */
+    static Map<String, Object> substituteVariables(
+            Map<String, Object> input, Map<String, String> variables) {
+        StrSubstitutor stringSubstitutor = new StrSubstitutor(variables);
+        Map<String, Object> map = new HashMap<>(input.size());
+        for (Map.Entry<String, Object> entry : input.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            map.put(key, value);
+            // Replace variable by its matching value.
+            if (value instanceof String) {
+                String substituted = stringSubstitutor.replace(entry.getValue());
+                map.put(key, substituted);
+            }
+        }
+        return map;
     }
 
     @SuppressWarnings("unchecked")
