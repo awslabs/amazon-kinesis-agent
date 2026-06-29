@@ -27,6 +27,7 @@ import com.amazon.kinesis.streaming.agent.tailing.FileFlowFactory;
 import com.amazon.kinesis.streaming.agent.tailing.FileId;
 import com.amazon.kinesis.streaming.agent.tailing.SourceFileTracker;
 import com.amazon.kinesis.streaming.agent.tailing.TrackedFile;
+import com.amazon.kinesis.streaming.agent.tailing.TrackedFileList;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
 import com.amazon.kinesis.streaming.agent.tailing.testing.CopyFileRotator;
 import com.amazon.kinesis.streaming.agent.tailing.testing.FileRotator;
@@ -47,9 +48,13 @@ public class SourceFileTrackerTest extends TailingTestBase {
 
     protected TestableSourceFileTracker getTracker(FileRotator rotator) throws IOException {
         // create the tracker for these files
-        Configuration flowConfig = new Configuration(getTestFlowConfig(rotator.getInputFileGlob()));
-        FileFlow<?> flow = new FileFlowFactory().getFileFlow(context, flowConfig);
+        FileFlow<?> flow = getFlow(rotator);
         return new TestableSourceFileTracker(rotator, flow, context);
+    }
+
+    protected FileFlow<?> getFlow(FileRotator rotator) throws IOException {
+        Configuration flowConfig = new Configuration(getTestFlowConfig(rotator.getInputFileGlob()));
+        return new FileFlowFactory().getFileFlow(context, flowConfig);
     }
 
     @DataProvider(name="rotators")
@@ -345,6 +350,108 @@ public class SourceFileTrackerTest extends TailingTestBase {
 
         // validate that the initial channel was closed
         tracker.assertRememberedFileWasClosed();
+    }
+
+    /**
+     * Regression test for a file-rotation race where the fallback file is deleted
+     * between {@code listFiles()} and {@code open()}. Before the fix,
+     * {@code startTailingNewFile} reassigned {@code currentOpenFile} before opening,
+     * so when {@code open()} threw the tracker was left with {@code currentOpenFile}
+     * no longer contained in {@code currentSnapshot}. Every subsequent refresh then
+     * threw {@code IllegalArgumentException} ("Current file is not contained in
+     * current snapshot!") forever, with no self-recovery. This test simulates the
+     * race and asserts the tracker recovers on later refreshes.
+     */
+    @Test
+    public void testRaceWhenFallbackFileDeletedDuringOpenIsRecoverable() throws IOException {
+        // Use the create-new-file rotation mode: it produces distinct, on-demand
+        // files (matching the real-world scenario this race was observed in) and
+        // lets us delete individual files without disturbing rotator bookkeeping.
+        FileRotator rotator = new CreateFileRotatorFactory().create();
+        rotator.rotate(2);
+        FileFlow<?> flow = getFlow(rotator);
+
+        // One-shot injection: simulate the file vanishing between the directory
+        // listing and the open() that startTailingNewFile performs on it.
+        final boolean[] injectRace = { false };
+        TestableSourceFileTracker tracker = new TestableSourceFileTracker(rotator, flow, context) {
+            @Override
+            protected void startTailingNewFile(TrackedFileList newSnapshot, int index) throws IOException {
+                if (injectRace[0]) {
+                    injectRace[0] = false;
+                    moveFileToTrash(newSnapshot.get(index).getPath());
+                }
+                super.startTailingNewFile(newSnapshot, index);
+            }
+        };
+        tracker.initialize();
+        Assert.assertNotNull(tracker.getCurrentOpenFile());
+        TrackedFile originalOpenFile = tracker.getCurrentOpenFile();
+
+        // Delete the current open file so the next refresh falls back to the other
+        // file, then make that fallback vanish during open() (the race).
+        moveFileToTrash(rotator.getFile(0));
+        injectRace[0] = true;
+        try {
+            tracker.refresh();
+        } catch (IOException expected) {
+            // The vanished-file open() surfaces as a transient IOException; the agent
+            // logs and retries. The bug being fixed is the PERMANENT failure that
+            // followed it, not this transient error.
+        }
+
+        // Fix A: state was not corrupted by the failed open(), so the next refresh
+        // must NOT throw IllegalArgumentException.
+        tracker.refresh();
+
+        // With both files gone the tracker should have cleanly stopped tailing.
+        Assert.assertNull(tracker.getCurrentOpenFile());
+
+        // And it self-recovers: once a new file appears it resumes tailing.
+        rotator.rotate();
+        tracker.refresh();
+        Assert.assertNotNull(tracker.getCurrentOpenFile());
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
+        Assert.assertNotSame(tracker.getCurrentOpenFile(), originalOpenFile);
+    }
+
+    /**
+     * Regression test for the recovery guard: if the tracker's internal state ever
+     * becomes inconsistent and {@code updateCurrentFile} throws an
+     * {@code IllegalArgumentException}/{@code IllegalStateException}, {@code refresh()}
+     * must reset to a recoverable state rather than propagating the exception on every
+     * poll forever.
+     */
+    @Test
+    public void testRefreshRecoversFromInconsistentTrackerState() throws IOException {
+        FileRotator rotator = new CreateFileRotatorFactory().create();
+        rotator.rotate(2);
+        FileFlow<?> flow = getFlow(rotator);
+
+        final boolean[] failOnce = { false };
+        SourceFileTracker tracker = new SourceFileTracker(context, flow) {
+            @Override
+            boolean updateCurrentFile(TrackedFileList newSnapshot) throws IOException {
+                if (failOnce[0]) {
+                    failOnce[0] = false;
+                    throw new IllegalArgumentException("Current file is not contained in current snapshot!");
+                }
+                return super.updateCurrentFile(newSnapshot);
+            }
+        };
+        tracker.initialize();
+        Assert.assertNotNull(tracker.getCurrentOpenFile());
+
+        // First refresh hits the simulated inconsistency. It must be swallowed and
+        // the tracker reset to the no-current-file state, not propagated.
+        failOnce[0] = true;
+        tracker.refresh();
+        Assert.assertNull(tracker.getCurrentOpenFile());
+
+        // Subsequent refresh re-initializes from disk and resumes tailing.
+        tracker.refresh();
+        Assert.assertNotNull(tracker.getCurrentOpenFile());
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
     }
 
     @Test(description = "Test behavior of an open channel when more data is appeneded.")
