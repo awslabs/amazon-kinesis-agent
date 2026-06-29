@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.amazon.kinesis.streaming.agent.Agent;
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.IHeartbeatProvider;
+import com.amazon.kinesis.streaming.agent.metrics.IMetricsScope;
 import com.amazon.kinesis.streaming.agent.metrics.Metrics;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
@@ -35,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.AbstractScheduledService;
 
@@ -48,6 +50,7 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 public class FileTailer<R extends IRecord> extends AbstractExecutionThreadService implements IHeartbeatProvider {
     private static final int NO_TIMEOUT = -1;
     private static final int MAX_SPIN_WAIT_TIME_MILLIS = 1000;
+    private static final String CONSECUTIVE_PROCESSING_ERRORS_METRIC = "ConsecutiveProcessingErrors";
     private static final Logger LOGGER = LoggerFactory.getLogger(FileTailer.class);
 
     @Getter private final AgentContext agentContext;
@@ -68,6 +71,15 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
 
     private boolean isInitialized = false;
     private final AtomicLong recordsTruncated = new AtomicLong();
+
+    // Number of consecutive processRecords() iterations that failed with an
+    // exception. Reset to 0 on any successful iteration. A persistently elevated
+    // value indicates the tailer is stuck in an error loop (e.g. it can no longer
+    // track or open its input file) and is no longer making progress, which the
+    // parse/send throughput metrics cannot distinguish from a healthy idle host.
+    private final AtomicLong consecutiveProcessingErrors = new AtomicLong();
+    // Cumulative count of processRecords() iterations that failed, for context.
+    private final AtomicLong totalProcessingErrors = new AtomicLong();
 
     public FileTailer(AgentContext agentContext,
             FileFlow<R> flow,
@@ -252,6 +264,9 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         try {
             if(!updateRecordParser(false)) {
                 LOGGER.trace("{}: There's no file being tailed.", serviceName());
+                // Having no file to tail is a healthy idle state, not an error:
+                // clear any prior error streak.
+                consecutiveProcessingErrors.set(0);
                 return 0;
             }
             processed = processRecordsInCurrentFile();
@@ -268,8 +283,12 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
                     isNewFile = parser.continueParsingWithFile(fileTracker.getCurrentOpenFile());
                 }
             }
+            // Iteration completed without error: clear the consecutive-error streak.
+            consecutiveProcessingErrors.set(0);
         } catch (Exception e) {
-            LOGGER.error("{}: Error when processing current input file or when tracking its status.", serviceName(), e);
+            totalProcessingErrors.incrementAndGet();
+            long consecutive = consecutiveProcessingErrors.incrementAndGet();
+            LOGGER.error("{}: Error when processing current input file or when tracking its status (consecutive errors: {}).", serviceName(), consecutive, e);
         }
         return processed;
     }
@@ -441,9 +460,35 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             } else if (bytesBehind > 0) {
                 LOGGER.debug(msg);
             }
+            emitProcessingErrorMetrics();
         } catch (Exception e) {
             LOGGER.error("{}: Failed while emitting tailer status.", serviceName(), e);
         }
+    }
+
+    /**
+     * Publishes the tailer's processing-error signal to CloudWatch so it can be
+     * alarmed on directly from agent telemetry. {@code ConsecutiveProcessingErrors}
+     * is a gauge that stays at 0 while the tailer makes progress and climbs while it
+     * is stuck in an error loop, making a wedged tailer distinguishable from a
+     * healthy idle host (whose throughput metrics also read 0).
+     */
+    private void emitProcessingErrorMetrics() {
+        IMetricsScope scope = agentContext.beginScope();
+        scope.addDimension(Metrics.DESTINATION_DIMENSION, flow.getDestination());
+        if (!Strings.isNullOrEmpty(agentContext.getInstanceTag())) {
+            scope.addDimension(Metrics.INSTANCE_DIMENSION, agentContext.getInstanceTag());
+        }
+        try {
+            scope.addCount(CONSECUTIVE_PROCESSING_ERRORS_METRIC, consecutiveProcessingErrors.get());
+        } finally {
+            scope.commit();
+        }
+    }
+
+    @VisibleForTesting
+    long getConsecutiveProcessingErrors() {
+        return consecutiveProcessingErrors.get();
     }
 
     public Map<String, Object> getMetrics() {
@@ -452,6 +497,8 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         metrics.put("FileTailer.FilesBehind", filesBehind());
         metrics.put("FileTailer.BytesBehind", bytesBehind());
         metrics.put("FileTailer.RecordsTruncated", recordsTruncated);
+        metrics.put("FileTailer.ConsecutiveProcessingErrors", consecutiveProcessingErrors);
+        metrics.put("FileTailer.TotalProcessingErrors", totalProcessingErrors);
         return metrics;
     }
 }
