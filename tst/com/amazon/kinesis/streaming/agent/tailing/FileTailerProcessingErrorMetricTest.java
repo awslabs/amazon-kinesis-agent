@@ -65,22 +65,22 @@ public class FileTailerProcessingErrorMetricTest extends TailingTestBase {
     @Test
     public void testConsecutiveErrorsClimbWhileStuckAndResetOnRecovery() throws IOException {
         ControllableFileTailer tailer = createTailer();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 0);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 0);
 
         // Every iteration fails: the gauge must climb monotonically (the signal an
         // alarm fires on when the tailer is wedged in an error loop).
         tailer.failNextProcess = true;
         tailer.processRecords();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 1);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 1);
         tailer.processRecords();
         tailer.processRecords();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 3);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 3);
 
         // The tailer recovers: a clean iteration resets the gauge to 0 so the alarm
         // clears and a single transient error never lingers.
         tailer.failNextProcess = false;
         tailer.processRecords();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 0);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 0);
     }
 
     @Test
@@ -91,10 +91,10 @@ public class FileTailerProcessingErrorMetricTest extends TailingTestBase {
         // gauge at 0, so transient blips don't trip the alarm.
         tailer.failNextProcess = true;
         tailer.processRecords();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 1);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 1);
 
         tailer.failNextProcess = false;
         tailer.processRecords();
-        Assert.assertEquals(tailer.getConsecutiveProcessingErrors(), 0);
+        Assert.assertEquals(tailer.getConsecutiveProcessingErrors().get(), 0);
     }
 }

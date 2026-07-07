@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 
 import org.joda.time.Duration;
@@ -77,9 +78,8 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
     // value indicates the tailer is stuck in an error loop (e.g. it can no longer
     // track or open its input file) and is no longer making progress, which the
     // parse/send throughput metrics cannot distinguish from a healthy idle host.
+    @Getter(AccessLevel.PROTECTED)
     private final AtomicLong consecutiveProcessingErrors = new AtomicLong();
-    // Cumulative count of processRecords() iterations that failed, for context.
-    private final AtomicLong totalProcessingErrors = new AtomicLong();
 
     public FileTailer(AgentContext agentContext,
             FileFlow<R> flow,
@@ -286,7 +286,6 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             // Iteration completed without error: clear the consecutive-error streak.
             consecutiveProcessingErrors.set(0);
         } catch (Exception e) {
-            totalProcessingErrors.incrementAndGet();
             long consecutive = consecutiveProcessingErrors.incrementAndGet();
             LOGGER.error("{}: Error when processing current input file or when tracking its status (consecutive errors: {}).", serviceName(), consecutive, e);
         }
@@ -486,11 +485,6 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         }
     }
 
-    @VisibleForTesting
-    long getConsecutiveProcessingErrors() {
-        return consecutiveProcessingErrors.get();
-    }
-
     public Map<String, Object> getMetrics() {
         Map<String, Object> metrics = publisher.getMetrics();
         metrics.putAll(parser.getMetrics());
@@ -498,7 +492,6 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         metrics.put("FileTailer.BytesBehind", bytesBehind());
         metrics.put("FileTailer.RecordsTruncated", recordsTruncated);
         metrics.put("FileTailer.ConsecutiveProcessingErrors", consecutiveProcessingErrors);
-        metrics.put("FileTailer.TotalProcessingErrors", totalProcessingErrors);
         return metrics;
     }
 }
