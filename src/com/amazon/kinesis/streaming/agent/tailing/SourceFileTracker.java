@@ -287,7 +287,19 @@ public class SourceFileTracker {
             initializeCurrentFile(newSnapshot);
             currentFileTracked = false;
         } else {
-            currentFileTracked = updateCurrentFile(newSnapshot);
+            try {
+                currentFileTracked = updateCurrentFile(newSnapshot);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                // The tracker's internal state is inconsistent (e.g. currentOpenFile
+                // is no longer contained in currentSnapshot). Left alone, this throws
+                // on every subsequent refresh and wedges the tailer in a permanent
+                // error loop with no self-recovery. Reset to the no-current-file state
+                // so the next refresh re-initializes from a freshly listed snapshot
+                // instead of looping forever.
+                LOGGER.error("{}: File tracker state is inconsistent; resetting tailing to recover.", flow.getSourceFile(), e);
+                stopTailing(newSnapshot);
+                currentFileTracked = false;
+            }
         }
         lastRefreshTimestamp = System.currentTimeMillis();
         return currentFileTracked;
@@ -377,18 +389,29 @@ public class SourceFileTracker {
 
     protected void resumeTailingRotatedFileWithNewId(TrackedFileList newSnapshot, int index) throws IOException {
         long offset = currentOpenFile.getCurrentOffset();  // note: FileChannel.position() does not change if underlying file was truncated
+        // Open the new file BEFORE mutating any tracker state. If the file was
+        // deleted since the snapshot was listed (file-rotation race), open() throws
+        // and we leave currentOpenFile/currentSnapshot untouched and consistent, so
+        // the next refresh can retry cleanly.
+        TrackedFile newFile = newSnapshot.get(index);
+        newFile.open(offset);
         closeCurrentFileIfOpen();
-        currentOpenFile = newSnapshot.get(index);
-        currentOpenFile.open(offset);
+        currentOpenFile = newFile;
         currentOpenFileIndex = index;
         LOGGER.trace("Resumed tailing file (index {}): {}", currentOpenFileIndex, currentOpenFile);
         updateSnapshot(newSnapshot, index);
     }
 
     protected void startTailingNewFile(TrackedFileList newSnapshot, int index) throws IOException {
+        // Open the new file BEFORE mutating any tracker state. If the file was
+        // deleted since the snapshot was listed (file-rotation race), open() throws
+        // and we leave currentOpenFile/currentSnapshot untouched and consistent, so
+        // the next refresh can retry cleanly instead of wedging the tailer in a
+        // permanent error loop.
+        TrackedFile newFile = newSnapshot.get(index);
+        newFile.open(0);
         closeCurrentFileIfOpen();
-        currentOpenFile = newSnapshot.get(index);
-        currentOpenFile.open(0);
+        currentOpenFile = newFile;
         currentOpenFileIndex = index;
         LOGGER.trace("Started tailing new file (index {}): {}", currentOpenFileIndex, currentOpenFile);
         updateSnapshot(newSnapshot, index);
