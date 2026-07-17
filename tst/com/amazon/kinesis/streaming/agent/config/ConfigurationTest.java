@@ -8,14 +8,14 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.amazon.kinesis.streaming.agent.config.Configuration;
-import com.amazon.kinesis.streaming.agent.config.ConfigurationException;
 import com.amazon.kinesis.streaming.agent.testing.TestUtils;
 import com.google.common.collect.Range;
 
@@ -228,5 +228,55 @@ public class ConfigurationTest {
     public void testReadMissingEnumNoFallback() throws IOException {
         Configuration config = getTestConfiguration("config1.json");
         config.readEnum(Thread.State.class, "nonExistingEnum");
+    }
+
+    @Test
+    public void testSubstituteValuesSuccess() {
+        Map<String, Object> input = new HashMap<>(1);
+        input.put("test", "${VARIABLE}");
+        Map<String, String> variables = new HashMap<>(1);
+        variables.put("VARIABLE", "happy face");
+        Map<String, Object> map = Configuration.substituteVariables(input, variables);
+        Assert.assertEquals(map.get("test"), "happy face");
+    }
+
+    @Test
+    public void testSubstituteNonStringValue() {
+        Map<String, Object> input = new HashMap<>(1);
+        Object expectedObject = new Object();
+        input.put("test", expectedObject);
+        Map<String, String> variables = new HashMap<>(1);
+        variables.put("VARIABLE", "happy face");
+        Map<String, Object> map = Configuration.substituteVariables(input, variables);
+        Assert.assertEquals(map.get("test"), expectedObject);
+    }
+
+    @Test
+    public void testSubstituteDoesNotExist() {
+        Map<String, Object> input = new HashMap<>(1);
+        input.put("test", "${NOT_EXISTS}");
+        Map<String, String> variables = new HashMap<>(0);
+        Map<String, Object> map = Configuration.substituteVariables(input, variables);
+        Assert.assertEquals(map.get("test"), "${NOT_EXISTS}");
+    }
+
+    @Test
+    public void testSubstituteValuesPrefixSuffix() {
+        Map<String, Object> input = new HashMap<>(1);
+        input.put("test", "prefix ${VARIABLE} suffix");
+        Map<String, String> variables = new HashMap<>(1);
+        variables.put("VARIABLE", "happy face");
+        Map<String, Object> map = Configuration.substituteVariables(input, variables);
+        Assert.assertEquals(map.get("test"), "prefix happy face suffix");
+    }
+
+    @Test
+    public void testSubstituteValuesNull() {
+        Map<String, Object> input = new HashMap<>(1);
+        input.put("test", null);
+        Map<String, String> variables = new HashMap<>(1);
+        variables.put("VARIABLE", "happy face");
+        Map<String, Object> map = Configuration.substituteVariables(input, variables);
+        Assert.assertNull(map.get("test"));
     }
 }
