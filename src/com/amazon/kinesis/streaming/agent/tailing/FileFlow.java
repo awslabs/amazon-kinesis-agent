@@ -107,7 +107,14 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         skipHeaderLines = readInteger("skipHeaderLines", 0);
         
         String pattern = readString("multiLineStartPattern", null);
-        recordSplitter = Strings.isNullOrEmpty(pattern) ? new SingleLineSplitter() : new RegexSplitter(pattern);
+        int maxDataBytes = readInteger("maxDataBytes", 0);
+        if (!Strings.isNullOrEmpty(pattern)) {
+            recordSplitter = new RegexSplitter(pattern);
+        } else if (maxDataBytes > 0) {
+            recordSplitter = new CompactSplitter(maxDataBytes);
+        } else {
+            recordSplitter = new SingleLineSplitter();
+        }
         
         String footerPattern = readString(FILE_FOOTER_PATTERN, null);
         
