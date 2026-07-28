@@ -12,6 +12,7 @@ import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import java.nio.*;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 public class DataConverterTest {
     
@@ -66,7 +67,63 @@ public class DataConverterTest {
         final String expectedStrMoreThanColumns = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
         verifyDataConversion(converter, dataStrMoreThanColumns.getBytes(), expectedStrMoreThanColumns.getBytes()); 
     }
-    
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testCSVToJSONStaticFields() throws Exception {
+
+        final Map<String, String> hashmap = new HashMap<String, String>();
+        hashmap.put("host", "server1.com");
+        hashmap.put("host2", "server2.com");
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("staticFields", hashmap);
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\",\"host2\":\"server2.com\",\"host\":\"server1.com\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testCSVToJSONStaticFieldsNotDefined() throws Exception {
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testCSVToJSONStaticFieldsEmpty() throws Exception {
+
+        final Map<String, String> hashmap = new HashMap<String, String>();
+
+        final Configuration config = new Configuration(new HashMap<String, Object>() {{
+            put("optionName", "CSVTOJSON");
+            put("staticFields", hashmap);
+            put("customFieldNames", Arrays.asList("column1", "column2", "column3", "column4"));
+        }});
+
+        final IDataConverter converter = new CSVToJSONDataConverter(config);
+        final String dataStr = "value1,value2,value3,value4\n";
+        final String expectedStr = "{\"column1\":\"value1\",\"column2\":\"value2\",\"column3\":\"value3\",\"column4\":\"value4\"}\n";
+        verifyDataConversion(converter, dataStr.getBytes(), expectedStr.getBytes());
+
+    }
+
     @SuppressWarnings("serial")
     @Test
     public void testCSVToJSONDataConverterConvertingTSV() throws Exception {
