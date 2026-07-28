@@ -28,7 +28,17 @@ import com.google.common.collect.Lists;
 public class SourceFileTest extends TestBase {
     @DataProvider(name = "constructorFileNameParsing")
     public Object[][] testConstructorFileNameParsingData() {
-        return new Object[][] { { "/var/log/message*", "/var/log", "message*" }, { "/log.*", "/", "log.*" }, };
+        return new Object[][] {
+                { "/var/log/message*", "/var/log", "message*" },
+                { "/log.*", "/", "log.*" },
+                { "/log.[abz]", "/", "log.[abz]" },
+                { "/opt/*/logs/app.log", "/opt", "*/logs/app.log" },
+                { "/opt/**/app.log*", "/opt", "**/app.log*" },
+                { "/file", "/", "file" },
+                { "/dir1/dir2/file", "/dir1/dir2", "file" },
+                { "/*/dir/file.???", "/", "*/dir/file.???" },
+                { "/dir1/*/dir2/???.log", "/dir1", "*/dir2/???.log" },
+        };
     }
 
     @Test(dataProvider = "constructorFileNameParsing")
@@ -138,6 +148,24 @@ public class SourceFileTest extends TestBase {
         Assert.assertEquals(src.listFiles().size(), 0);
     }
 
+    @Test
+    public void testListFilesReturnsDirectoryMatch() throws IOException {
+        String tmpDir =  testFiles.getTmpDir().toString();
+        String fileGlob = tmpDir + "/dir1/*/file*.txt";
+
+        // create the matching files
+        testFiles.createTempFileWithName("/dir1/1/file1.txt");
+        testFiles.createTempFileWithName("/dir1/2/file2.txt");
+
+        // create the non-matching files
+        testFiles.createTempFileWithName("/dir1/1/log.txt");
+        testFiles.createTempFileWithName("/dir1/file1.txt");
+        testFiles.createTempFileWithName("/dir2/1/file1.txt");
+
+        SourceFile src = new SourceFile(null, fileGlob);
+        Assert.assertEquals(src.listFiles().size(), 2);
+    }
+
     @Test(dataProvider = "listAndCountFiles")
     public void testCountFiles(String fileGlob, String[] matchingNames, String[] nonMatchingNames)
             throws InterruptedException, IOException {
@@ -170,5 +198,23 @@ public class SourceFileTest extends TestBase {
         testFiles.createTempFile();
         SourceFile src = new SourceFile(null, testFiles.getTmpDir().toString() + "/" + fileGlob);
         Assert.assertEquals(src.countFiles(), 0);
+    }
+
+    @Test
+    public void testCountFilesReturnsByDirectoryMatch() throws IOException {
+        String tmpDir =  testFiles.getTmpDir().toString();
+        String fileGlob = tmpDir + "/dir1/*/file*.txt";
+
+        // create the matching files
+        testFiles.createTempFileWithName("/dir1/1/file1.txt");
+        testFiles.createTempFileWithName("/dir1/2/file2.txt");
+
+        // create the non-matching files
+        testFiles.createTempFileWithName("/dir1/1/log.txt");
+        testFiles.createTempFileWithName("/dir1/file1.txt");
+        testFiles.createTempFileWithName("/dir2/1/file1.txt");
+
+        SourceFile src = new SourceFile(null, fileGlob);
+        Assert.assertEquals(src.countFiles(), 2);
     }
 }

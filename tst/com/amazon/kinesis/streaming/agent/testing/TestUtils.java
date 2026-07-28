@@ -524,6 +524,7 @@ public final class TestUtils {
             Path fname = getTempFilePathWithName(name);
             Preconditions.checkState(!Files.exists(fname), "File already exists: " + fname);
             try {
+                Files.createDirectories(fname.getParent());
                 Files.createFile(fname);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
