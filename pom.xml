@@ -150,12 +150,12 @@
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-1.2-api</artifactId>
-          <version>2.17.1</version>
+          <version>2.25.5</version>
         </dependency>
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-core</artifactId>
-          <version>2.17.1</version>
+          <version>2.25.5</version>
           <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -166,13 +166,13 @@
         <dependency>
           <groupId>org.apache.logging.log4j</groupId>
           <artifactId>log4j-slf4j-impl</artifactId>
-          <version>2.17.1</version>
+          <version>2.25.5</version>
           <exclusions>
             <exclusion>
-              <groupId>log4j</groupId> 
+              <groupId>log4j</groupId>
               <artifactId>log4j</artifactId>
             </exclusion>
-          </exclusions>              
+          </exclusions>
         </dependency>
         <dependency>
           <groupId>com.beust</groupId>
@@ -192,7 +192,7 @@
         <dependency>
           <groupId>org.projectlombok</groupId>
           <artifactId>lombok</artifactId>
-          <version>1.18.22</version>
+          <version>1.18.30</version>
         </dependency>
     </dependencies>
 
@@ -220,8 +220,8 @@
             <artifactId>maven-compiler-plugin</artifactId>
             <version>3.2</version>
             <configuration>
-              <source>1.7</source>
-              <target>1.7</target>
+              <source>1.8</source>
+              <target>1.8</target>
               <encoding>UTF-8</encoding>
             </configuration>
           </plugin>
@@ -229,6 +229,23 @@
       </pluginManagement>
 
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
+          <configuration>
+            <source>1.8</source>
+            <target>1.8</target>
+            <encoding>UTF-8</encoding>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.30</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-gpg-plugin</artifactId>
