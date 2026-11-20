@@ -33,7 +33,7 @@ import com.google.common.base.Stopwatch;
  */
 class AsyncPublisher<R extends IRecord> extends SimplePublisher<R> {
     private static final int NO_TIMEOUT = -1;
-    private static final int MAX_SPIN_WAIT_TIME_MILLIS = 1000;
+    protected final long maxSpinWaitTime;
     protected final ExecutorService sendingExecutor;
     protected final AsyncPublisherThrottler<R> throttler;
     protected final AtomicInteger activeSendTasks = new AtomicInteger();
@@ -61,6 +61,7 @@ class AsyncPublisher<R extends IRecord> extends SimplePublisher<R> {
         this.throttler = new AsyncPublisherThrottler<>(
                 this, flow.getRetryInitialBackoffMillis(),
                 flow.getRetryMaxBackoffMillis());
+        this.maxSpinWaitTime = flow.getMaxSpinWaitTimeMillis();
     }
 
     /**
@@ -93,7 +94,7 @@ class AsyncPublisher<R extends IRecord> extends SimplePublisher<R> {
                     : Long.MAX_VALUE;
             if(remaining <= 0)
                 return false;
-            long sleepTime = Math.min(MAX_SPIN_WAIT_TIME_MILLIS, remaining);
+            long sleepTime = Math.min(maxSpinWaitTime, remaining);
             logger.trace("{}: Waiting for idle state. Sleeping {}ms. {}", name(), sleepTime, toString());
             // Perform a check on any pending records in case it's time to publish them before sleeping
             queue.checkPendingRecords();

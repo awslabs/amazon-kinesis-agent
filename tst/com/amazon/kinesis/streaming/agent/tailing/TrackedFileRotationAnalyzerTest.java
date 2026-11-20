@@ -4,6 +4,8 @@
 package com.amazon.kinesis.streaming.agent.tailing;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.testng.Assert;
@@ -236,5 +238,32 @@ public class TrackedFileRotationAnalyzerTest extends TailingTestBase {
         Assert.assertTrue(analyzer.currentOpenFileWasTruncated());
         // see if analyzer will figure out the right file
         Assert.assertEquals(analyzer.findCurrentOpenFileAfterTruncate(), additionalRotations);
+    }
+
+    /**
+     * Truncate rotation that leaves no visible copy (e.g. copytruncate + compress: the copy is a .gz that
+     * SourceFile ignores). findCurrentOpenFileAfterTruncate must report "not found" instead of throwing,
+     * which used to fail FileTailer startup and crash-loop the agent until the file grew back.
+     */
+    @Test
+    public void testFindCurrentOpenFileAfterTruncateWithNoVisibleCopy() throws IOException {
+        Path file = testFiles.createTempFile();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            sb.append("{\"n\":").append(i).append("}\n");
+        }
+        Files.write(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+        SourceFile source = new SourceFile(null, file.toString());
+        TrackedFileList current = source.listFiles();
+        Assert.assertEquals(current.size(), 1);
+        TrackedFile currentOpenFile = current.get(0);
+
+        // copytruncate: same path, same inode, now smaller; the gzipped copy is not part of the snapshot
+        Files.write(file, "{\"n\":0}\n".getBytes(StandardCharsets.UTF_8));
+        TrackedFileList incoming = source.listFiles();
+        Assert.assertEquals(incoming.size(), 1);
+        TrackedFileRotationAnalyzer analyzer = new TrackedFileRotationAnalyzer(current, incoming, currentOpenFile);
+        Assert.assertTrue(analyzer.currentOpenFileWasTruncated());
+        Assert.assertEquals(analyzer.findCurrentOpenFileAfterTruncate(), -1);
     }
 }

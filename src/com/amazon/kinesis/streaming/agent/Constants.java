@@ -23,4 +23,5 @@ public class Constants {
     public static final long DEFAULT_MAX_BUFFER_AGE_MILLIS = TimeUnit.MINUTES.toMillis(1);
     public static final long DEFAULT_WAIT_ON_FULL_PUBLISH_QUEUE_MILLIS = TimeUnit.MINUTES.toMillis(1);
     public static final long DEFAULT_WAIT_ON_EMPTY_PUBLISH_QUEUE_MILLIS = TimeUnit.MINUTES.toMillis(1);
+    public static final long DEFAULT_MAX_SPIN_WAIT_TIME_MILLIS = TimeUnit.SECONDS.toMillis(1);
 }

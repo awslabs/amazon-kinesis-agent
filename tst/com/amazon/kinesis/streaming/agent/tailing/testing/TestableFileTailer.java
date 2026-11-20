@@ -39,6 +39,25 @@ public class TestableFileTailer<R extends IRecord> extends FileTailer<R> {
         return new TestableFileTailer<FirehoseRecord>(context, flow, fileTracker, publisher, parser, checkpoints);
     }
 
+    public static TestableFileTailer<FirehoseRecord> createFailingTailer(
+            AgentContext context, FileFlow<FirehoseRecord> flow,
+            FileSender<FirehoseRecord> sender, FileCheckpointStore checkpoints) throws IOException {
+
+        IParser<FirehoseRecord> parser = new FirehoseParser(flow, FirehoseConstants.DEFAULT_PARSER_BUFFER_SIZE_BYTES);
+        SourceFileTracker fileTracker = new SourceFileTracker(context, flow);
+        checkpoints = checkpoints == null ? new SQLiteFileCheckpointStore(context) : checkpoints;
+        AsyncPublisherService<FirehoseRecord> publisher = new AsyncPublisherService<>(
+                context, flow, checkpoints, sender, context.createSendingExecutor());
+
+        return new TestableFileTailer<FirehoseRecord>(
+                context, flow, fileTracker, publisher, parser, checkpoints) {
+            @Override
+            protected int runOnce() {
+                throw new OutOfMemoryError("Simulated OOM for testing");
+            }
+        };
+    }
+
     private volatile boolean paused = false;
 
     public TestableFileTailer(AgentContext agentContext, FileFlow<R> flow, SourceFileTracker fileTracker,

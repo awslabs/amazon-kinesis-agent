@@ -46,7 +46,7 @@ public class AgentContextTest {
         String userAgent = context.userAgent(config);
         assertTrue(userAgent.startsWith(AgentContext.DEFAULT_USER_AGENT + "/0.1"));
     }
-
+    
     @Test
     public void testInstanceTag() throws IOException {
         AgentContext context = new AgentContext(getTestConfiguration("./resources/agentconfig1.json"));

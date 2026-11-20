@@ -177,12 +177,12 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     } 
 
     private final AgentContext agentContext;
-    private final HeartbeatService heartbeat;
     private final ThreadPoolExecutor sendingExecutor;
     private final Logger logger;
     private final FileCheckpointStore checkpoints;
     private final Object lock = new Object();
     private final Stopwatch uptime = Stopwatch.createUnstarted();
+    private HeartbeatService heartbeat;
     private String name;
     private AbstractScheduledService metricsEmitter;
 
@@ -242,6 +242,10 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 agentContext.maxSendingThreads());
         ThreadPoolExecutor tp = agentContext.createSendingExecutor();
         return tp;
+    }
+
+    public void setHeartbeat(HeartbeatService heartbeat) {
+        this.heartbeat = heartbeat;
     }
 
     @Override

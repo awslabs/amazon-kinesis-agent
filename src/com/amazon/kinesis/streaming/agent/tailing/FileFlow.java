@@ -52,6 +52,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public static final String MAX_BUFFER_SIZE_BYTES_KEY = "maxBufferSizeBytes";
     public static final String MAX_BUFFER_SIZE_RECORDS_KEY = "maxBufferSizeRecords";
     public static final String MAX_BUFFER_AGE_MILLIS_KEY = "maxBufferAgeMillis";
+    public static final String DEFAULT_MAX_SPIN_WAIT_TIME_KEY = "maxSpinWaitTime";
     public static final String WAIT_ON_FULL_PUBLISH_QUEUE_MILLIS_KEY = "waitOnFullPublishQueueMillis";
     public static final String WAIT_ON_EMPTY_PUBLISH_QUEUE_MILLIS_KEY = "waitOnEmptyPublishQueueMillis";
     public static final String WAIT_ON_FULL_RETRY_QUEUE_MILLIS_KEY = "waitOnFullRetryQueueMillis";
@@ -65,6 +66,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     @Getter protected final int maxBufferSizeRecords;
     @Getter protected final int maxBufferSizeBytes;
     @Getter protected final long maxBufferAgeMillis;
+    @Getter protected final long maxSpinWaitTimeMillis;
     @Getter protected final long waitOnFullPublishQueueMillis;
     @Getter protected final long waitOnEmptyPublishQueueMillis;
     @Getter protected final InitialPosition initialPosition;
@@ -84,6 +86,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         
         sourceFile = buildSourceFile();
 
+        maxSpinWaitTimeMillis = readLong(DEFAULT_MAX_SPIN_WAIT_TIME_KEY, getDefaultMaxSpinWaitTime());
         maxBufferAgeMillis = readLong(MAX_BUFFER_AGE_MILLIS_KEY, getDefaultMaxBufferAgeMillis());
         Configuration.validateRange(maxBufferAgeMillis, getMaxBufferAgeMillisValidRange(), MAX_BUFFER_AGE_MILLIS_KEY);
         maxBufferSizeRecords = readInteger(MAX_BUFFER_SIZE_RECORDS_KEY, getDefaultBufferSizeRecords());
@@ -141,6 +144,10 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public long maxTimeBetweenFileTrackerRefreshMillis() {
         return readLong(MAX_TIME_BETWEEN_FILE_TRACKER_REFRESH_MILLIS_KEY,
                 DEFAULT_MAX_TIME_BETWEEN_FILE_TRACKER_REFRESH_MILLIS);
+    }
+
+    public long getDefaultMaxSpinWaitTime() {
+        return Constants.DEFAULT_MAX_SPIN_WAIT_TIME_MILLIS;
     }
 
     public abstract String getId();

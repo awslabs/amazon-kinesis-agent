@@ -50,7 +50,6 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 // TODO: Refactor into two classes: FileTailer and FileTailerService, similar to AsyncPublisher and AsyncPublisherService
 public class FileTailer<R extends IRecord> extends AbstractExecutionThreadService implements IHeartbeatProvider {
     private static final int NO_TIMEOUT = -1;
-    private static final int MAX_SPIN_WAIT_TIME_MILLIS = 1000;
     private static final String CONSECUTIVE_PROCESSING_ERRORS_METRIC = "ConsecutiveProcessingErrors";
     private static final Logger LOGGER = LoggerFactory.getLogger(FileTailer.class);
 
@@ -68,6 +67,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
     private boolean isNewFile = false;
     protected final long minTimeBetweenFilePollsMillis;
     protected final long maxTimeBetweenFileTrackerRefreshMillis;
+    protected final long maxSpinWaitTime;
     private AbstractScheduledService metricsEmitter;
 
     private boolean isInitialized = false;
@@ -97,6 +97,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         this.fileTracker = new SourceFileTracker(this.agentContext, this.flow);
         this.minTimeBetweenFilePollsMillis = flow.minTimeBetweenFilePollsMillis();
         this.maxTimeBetweenFileTrackerRefreshMillis = flow.maxTimeBetweenFileTrackerRefreshMillis();
+        this.maxSpinWaitTime = flow.getMaxSpinWaitTimeMillis();
         this.metricsEmitter = new AbstractScheduledService() {
             @Override
             protected void runOneIteration() throws Exception {
@@ -170,6 +171,13 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             if (fileTracker.initialize(cp) && parser.continueParsingWithFile(fileTracker.getCurrentOpenFile())) {
                 Preconditions.checkNotNull(fileTracker.getCurrentOpenFile());
                 LOGGER.info("{}: Successfully started tailing from previous checkpoint {}@{}", serviceName(), fileTracker.getCurrentOpenFile().getPath(), cp.getOffset());
+            } else if (fileTracker.isCheckpointFileReplaced()) {
+                // The file found for the checkpoint is not the data the checkpoint covers: it reused the checkpointed
+                // file's ID, or the checkpointed file was truncated with no rotated copy. Its content was written after
+                // the checkpoint, so parse it from the beginning instead of the flow's initial position.
+                LOGGER.warn("{}: File {} replaced or truncated checkpointed file {}@{}; tailing it from the beginning.",
+                        serviceName(), fileTracker.getCurrentOpenFile().getPath(), cp.getFile().getPath(), cp.getOffset());
+                parser.switchParsingToFile(fileTracker.getCurrentOpenFile());
             } else {
                 LOGGER.warn("{}: Failed to start tailing from previous checkpoint {}@{}", serviceName(), cp.getFile(), cp.getOffset());
                 parser.startParsingFile(fileTracker.getCurrentOpenFile());
@@ -222,7 +230,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
                     : Long.MAX_VALUE;
             if(remaining <= 0)
                 return false;
-            long sleepTime = Math.min(MAX_SPIN_WAIT_TIME_MILLIS, remaining);
+            long sleepTime = Math.min(maxSpinWaitTime, remaining);
             LOGGER.trace("{}: Waiting IDLE. Sleeping {}ms. {}", serviceName(), sleepTime, toString());
             publisher.flush();
             try {

@@ -37,11 +37,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
+import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow;
 import com.amazon.kinesis.streaming.agent.tailing.FileId;
 import com.amazon.kinesis.streaming.agent.tailing.TrackedFile;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Range;
 
 /**
  * Checkpoint store backed by a SQLite database file.
@@ -52,6 +54,20 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
     private static final Logger LOGGER = LoggerFactory.getLogger(SQLiteFileCheckpointStore.class);
     private static final int DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS = 5;
     private static final int DEFAULT_DB_QUERY_TIMEOUT_SECONDS = 30;
+    @VisibleForTesting
+    static final String FINGERPRINT_SIZE_KEY = "checkpoints.fingerprintSizeBytes";
+    private static final Range<Integer> VALID_FINGERPRINT_SIZE_RANGE =
+            Range.closed(FileFingerprint.MIN_SIZE_BYTES, FileFingerprint.MAX_SIZE_BYTES);
+
+    // Fingerprints live in their own table so FILE_CHECKPOINTS keeps the exact schema older agents read and write
+    // (they insert positionally). Older agents ignore this table. A fingerprint row is only trusted while its
+    // fileId and offset still equal the checkpoint row's, so a checkpoint updated by an older agent simply has
+    // no fingerprint.
+    private static final String FINGERPRINT_COLUMNS =
+            "f.headLength as headLength, f.headHash as headHash, f.tailLength as tailLength, f.tailHash as tailHash";
+    private static final String CHECKPOINTS_WITH_FINGERPRINTS =
+            "from FILE_CHECKPOINTS c left join FILE_FINGERPRINTS f " +
+            "on f.flow = c.flow and f.path = c.path and f.fileId = c.fileId and f.offset = c.offset ";
 
     private final Path dbFile;
     @VisibleForTesting
@@ -60,12 +76,15 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
     Connection connection;
     private final int dbQueryTimeoutSeconds;
     private final int dbConnectionTimeoutSeconds;
+    private final int fingerprintSizeBytes;
 
     public SQLiteFileCheckpointStore(AgentContext agentContext) {
         this.agentContext = agentContext;
         this.dbFile = this.agentContext.checkpointFile();
         this.dbQueryTimeoutSeconds = this.agentContext.readInteger("checkpoints.queryTimeoutSeconds", DEFAULT_DB_QUERY_TIMEOUT_SECONDS);
         this.dbConnectionTimeoutSeconds = this.agentContext.readInteger("checkpoints.connectionTimeoutSeconds", DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS);
+        this.fingerprintSizeBytes = this.agentContext.readInteger(FINGERPRINT_SIZE_KEY, FileFingerprint.DEFAULT_SIZE_BYTES);
+        Configuration.validateRange(this.fingerprintSizeBytes, VALID_FINGERPRINT_SIZE_RANGE, FINGERPRINT_SIZE_KEY);
         connect();
         // Every time we connect, try cleaning up the database
         deleteOldData();
@@ -119,6 +138,18 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
                         + "       lastUpdated datetime,"
                         + "       primary key (flow, path))"
                         );
+                statement.executeUpdate("create table if not exists FILE_FINGERPRINTS("
+                        + "       flow text,"
+                        + "       path text,"
+                        + "       fileId text,"
+                        + "       offset bigint,"
+                        + "       headLength integer,"
+                        + "       headHash text,"
+                        + "       tailLength integer,"
+                        + "       tailHash text,"
+                        + "       primary key (flow, path))"
+                        );
+                connection.commit();
             } catch (SQLException e) {
                 throw new RuntimeException("Failed to configure the checkpoint database.", e);
             }
@@ -140,12 +171,16 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
     }
 
     @Override
-    public synchronized FileCheckpoint saveCheckpoint(TrackedFile file, long offset) {
+    public FileCheckpoint saveCheckpoint(TrackedFile file, long offset) {
         Preconditions.checkNotNull(file);
-        return createOrUpdateCheckpoint(new FileCheckpoint(file, offset));
+        FileFingerprint fingerprint = FileFingerprint.compute(file.getPath(), file.getId(), offset, fingerprintSizeBytes);
+        if (fingerprint == null && offset > 0) {
+            LOGGER.trace("No fingerprint for checkpoint {}@{}: file not readable at its path as the same file.", file, offset);
+        }
+        return createOrUpdateCheckpoint(new FileCheckpoint(file, offset, fingerprint));
     }
 
-    private FileCheckpoint createOrUpdateCheckpoint(FileCheckpoint cp) {
+    private synchronized FileCheckpoint createOrUpdateCheckpoint(FileCheckpoint cp) {
         if (!ensureConnected())
             return null;
         try {
@@ -183,6 +218,7 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
             } else {
                 LOGGER.trace("Updated database checkpoint: {}@{}", cp.getFile(), cp.getOffset());
             }
+            saveFingerprint(cp);
             connection.commit();
             return cp;
         } catch (SQLException e) {
@@ -198,6 +234,51 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
         }
     }
 
+    /**
+     * Stores the checkpoint's fingerprint in the same transaction as the checkpoint, or removes the old one
+     * when there is none, so a fingerprint row never describes a different offset than its checkpoint.
+     */
+    private void saveFingerprint(FileCheckpoint cp) throws SQLException {
+        String flowId = cp.getFile().getFlow().getId();
+        String path = cp.getFile().getPath().toAbsolutePath().toString();
+        FileFingerprint fp = cp.getFingerprint();
+        if (fp == null) {
+            @Cleanup PreparedStatement delete = connection.prepareStatement(
+                    "delete from FILE_FINGERPRINTS where flow=? and path=?");
+            delete.setString(1, flowId);
+            delete.setString(2, path);
+            delete.executeUpdate();
+            return;
+        }
+        @Cleanup PreparedStatement upsert = connection.prepareStatement(
+                "insert or replace into FILE_FINGERPRINTS " +
+                "(flow, path, fileId, offset, headLength, headHash, tailLength, tailHash) " +
+                "values(?, ?, ?, ?, ?, ?, ?, ?)");
+        upsert.setString(1, flowId);
+        upsert.setString(2, path);
+        upsert.setString(3, cp.getFile().getId().toString());
+        upsert.setLong(4, cp.getOffset());
+        upsert.setInt(5, fp.getHeadLength());
+        upsert.setString(6, fp.getHeadHash());
+        upsert.setInt(7, fp.getTailLength());
+        upsert.setString(8, fp.getTailHash());
+        upsert.executeUpdate();
+    }
+
+    private static FileFingerprint readFingerprint(ResultSet result, long offset) throws SQLException {
+        String headHash = result.getString("headHash");
+        String tailHash = result.getString("tailHash");
+        if (headHash == null || tailHash == null) {
+            return null;
+        }
+        try {
+            return new FileFingerprint(offset, result.getInt("headLength"), headHash, result.getInt("tailLength"), tailHash);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("Ignoring invalid checkpoint fingerprint: {}", e.getMessage());
+            return null;
+        }
+    }
+
     @Override
     public FileCheckpoint getCheckpointForPath(FileFlow<?> flow, Path p) {
         Preconditions.checkNotNull(flow);
@@ -206,9 +287,10 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
             return null;
         try {
             @Cleanup PreparedStatement statement = connection.prepareStatement(
-                    "select fileId, lastModifiedTime, size, offset " +
-                    "from FILE_CHECKPOINTS " +
-                    "where flow=? and path=?");
+                    "select c.fileId as fileId, c.lastModifiedTime as lastModifiedTime, c.size as size, " +
+                    "c.offset as offset, " + FINGERPRINT_COLUMNS + " " +
+                    CHECKPOINTS_WITH_FINGERPRINTS +
+                    "where c.flow=? and c.path=?");
             statement.setString(1, flow.getId());
             statement.setString(2, p.toAbsolutePath().toString());
             statement.setMaxRows(1);
@@ -218,7 +300,8 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
                         flow, p, new FileId(result.getString("fileId")),
                         result.getLong("lastModifiedTime"),
                         result.getLong("size"));
-                return new FileCheckpoint(file, result.getLong("offset"));
+                long offset = result.getLong("offset");
+                return new FileCheckpoint(file, offset, readFingerprint(result, offset));
             } else
                 return null;
         } catch (SQLException e) {
@@ -234,10 +317,11 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
             return null;
         try {
             @Cleanup PreparedStatement statement = connection.prepareStatement(
-                    "select path, fileId, lastModifiedTime, size, offset " +
-                    "from FILE_CHECKPOINTS " +
-                    "where flow=? " +
-                    "order by lastUpdated desc " +
+                    "select c.path as path, c.fileId as fileId, c.lastModifiedTime as lastModifiedTime, " +
+                    "c.size as size, c.offset as offset, " + FINGERPRINT_COLUMNS + " " +
+                    CHECKPOINTS_WITH_FINGERPRINTS +
+                    "where c.flow=? " +
+                    "order by c.lastUpdated desc " +
                     "limit 1");
             statement.setString(1, flow.getId());
             statement.setMaxRows(1);
@@ -248,7 +332,8 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
                         new FileId(result.getString("fileId")),
                         result.getLong("lastModifiedTime"),
                         result.getLong("size"));
-                return new FileCheckpoint(file, result.getLong("offset"));
+                long offset = result.getLong("offset");
+                return new FileCheckpoint(file, offset, readFingerprint(result, offset));
             } else
                 return null;
         } catch (SQLException e) {
@@ -294,8 +379,16 @@ public class SQLiteFileCheckpointStore implements FileCheckpointStore {
             @Cleanup PreparedStatement statement = connection.prepareStatement(query);
             statement.setQueryTimeout(dbQueryTimeoutSeconds);
             int affectedCount = statement.executeUpdate();
+            // Drop fingerprints whose checkpoint is gone or was changed by an agent that does not write them.
+            @Cleanup PreparedStatement fingerprints = connection.prepareStatement(
+                    "delete from FILE_FINGERPRINTS where not exists (" +
+                    "select 1 from FILE_CHECKPOINTS c where c.flow = FILE_FINGERPRINTS.flow " +
+                    "and c.path = FILE_FINGERPRINTS.path and c.fileId = FILE_FINGERPRINTS.fileId " +
+                    "and c.offset = FILE_FINGERPRINTS.offset)");
+            fingerprints.setQueryTimeout(dbQueryTimeoutSeconds);
+            int fingerprintCount = fingerprints.executeUpdate();
             connection.commit();
-            LOGGER.info("Deleted {} old checkpoints.", affectedCount);
+            LOGGER.info("Deleted {} old checkpoints and {} stale fingerprints.", affectedCount, fingerprintCount);
         } catch (SQLException e) {
             try {
                 connection.rollback();

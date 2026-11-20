@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
+import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileFingerprint;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -146,6 +147,19 @@ public class SourceFileTracker {
     @Getter protected TrackedFileList pendingFiles;
     protected TrackedFileList currentSnapshot;
     @Getter protected long lastRefreshTimestamp = 0;
+    /**
+     * Set by {@link #initialize(FileCheckpoint)} when a file has the checkpointed file's ID but is not that file
+     * (it is smaller than the checkpoint offset, or its content does not match the checkpoint fingerprint), for
+     * example a new file that reused a deleted file's inode. That file was created after the checkpoint, so none
+     * of it was sent: it is opened at offset 0 and must be parsed from there, not from the flow's initial position.
+     */
+    @Getter private boolean checkpointFileReplaced = false;
+    /**
+     * Set by {@link #onTruncationWithoutRotation} when the rotation analyzer decided the current file was truncated
+     * and no rotated copy holds its old data, so tailing was reset. Read only by {@link #initialize(FileCheckpoint)}
+     * (and reset there), so it reuses the analyzer's decision instead of re-deriving it.
+     */
+    private boolean truncatedWithoutRotation = false;
 
     public SourceFileTracker(AgentContext agentContext, FileFlow<?> flow) throws IOException {
         this.flow = flow;
@@ -166,6 +180,8 @@ public class SourceFileTracker {
      */
     public boolean initialize(FileCheckpoint checkpoint) throws IOException {
         Preconditions.checkNotNull(checkpoint);
+        checkpointFileReplaced = false;
+        truncatedWithoutRotation = false;
         // Start with the file in the checkpoint as the current open file
         currentOpenFile = checkpoint.getFile();
         currentSnapshot = new TrackedFileList(Collections.singletonList(currentOpenFile));
@@ -173,8 +189,9 @@ public class SourceFileTracker {
         pendingFiles = TrackedFileList.emptyList();
         TrackedFileList newSnapshot = sourceFile.listFiles();
         if(updateCurrentFile(newSnapshot)) {
-            // means that the current file was tracked... we just need to change the offset
-            if (currentOpenFile.getSize() >= checkpoint.getOffset()) {
+            // means that the current file was tracked by its ID... check that it really is the checkpointed file
+            String mismatch = checkpointMismatch(checkpoint, currentOpenFile);
+            if (mismatch == null) {
                 LOGGER.debug("File from checkpoint was tracked successfully ({}). " +
                 		"Setting offset to {}.",
                 		currentOpenFile.getPath(), checkpoint.getOffset());
@@ -182,14 +199,42 @@ public class SourceFileTracker {
                 currentOpenFile.open(checkpoint.getOffset());
                 return true;
             } else {
-                onTrackingAnomaly(
-                        "Checkpoint offset (" + checkpoint.getOffset() + ") is beyound the end of the current file. " +
-                        		"This suggests that we failed to track the correct file referenced in the checkpoint.",
-                        newSnapshot, true);
+                // This can occur when a new file reused the checkpointed file's inode)
+                LOGGER.warn("{}: {} Tailing it from the beginning as a new file.", flow.getSourceFile(), mismatch);
+                // Tail this file from offset 0; any newer files stay pending after it.
+                startTailingNewFile(newSnapshot, currentOpenFileIndex);
+                checkpointFileReplaced = true;
                 return false;
             }
+        } else if (truncatedWithoutRotation && currentOpenFile != null && currentOpenFile.isOpen()) {
+            // The analyzer found the checkpointed file truncated in place while the agent was stopped, with no
+            // rotated copy holding its old data visible (e.g. logrotate copytruncate + compress), and tailing was
+            // reset. The file now open was written after the checkpoint (the truncated file, or a newer file that was
+            // never checkpointed), so it must be parsed from the beginning.
+            LOGGER.warn("{}: {} was truncated (checkpointed at {} bytes, offset {}) and no rotated copy was found. " +
+                    "Tailing {} from the beginning.", flow.getSourceFile(), checkpoint.getFile().getPath(),
+                    checkpoint.getFile().getSize(), checkpoint.getOffset(), currentOpenFile.getPath());
+            checkpointFileReplaced = true;
+            return false;
         } else
             return false;
+    }
+
+    /**
+     * @return why {@code file}, found by the checkpoint's file ID, is not the checkpointed file, or {@code null} if it
+     *         is. Without a fingerprint (checkpoints from older agents) only the size is checked, as before.
+     */
+    private static String checkpointMismatch(FileCheckpoint checkpoint, TrackedFile file) throws IOException {
+        if (file.getSize() < checkpoint.getOffset()) {
+            return "Checkpoint offset (" + checkpoint.getOffset() + ") is beyond the end of " + file.getPath() +
+                    " (" + file.getSize() + " bytes), so it is not the file referenced in the checkpoint.";
+        }
+        FileFingerprint fingerprint = checkpoint.getFingerprint();
+        if (fingerprint != null && !fingerprint.matches(file.getPath())) {
+            return "File " + file.getPath() + " has the checkpointed file ID but different content " +
+                    "(fingerprint mismatch), so it reused the ID of " + checkpoint.getFile().getPath() + ".";
+        }
+        return null;
     }
 
     public long remainingBytes() throws IOException {
@@ -387,6 +432,22 @@ public class SourceFileTracker {
         currentOpenFile.close();
     }
 
+    /**
+     * Opens {@code newFile} at {@code offset} and closes the current file. Normally the new file is opened first, so a
+     * failed open (file deleted since it was listed) leaves the tracker state untouched. When {@code newFile} is the
+     * same object as the current file (e.g. a reset right after a checkpoint matched it), closing after opening would
+     * close the file just opened, so in that case it is closed first and then reopened.
+     */
+    private void openReplacingCurrentFile(TrackedFile newFile, long offset) throws IOException {
+        if (newFile == currentOpenFile) {
+            closeCurrentFileIfOpen();
+            newFile.open(offset);
+        } else {
+            newFile.open(offset);
+            closeCurrentFileIfOpen();
+        }
+    }
+
     protected void resumeTailingRotatedFileWithNewId(TrackedFileList newSnapshot, int index) throws IOException {
         long offset = currentOpenFile.getCurrentOffset();  // note: FileChannel.position() does not change if underlying file was truncated
         // Open the new file BEFORE mutating any tracker state. If the file was
@@ -394,8 +455,7 @@ public class SourceFileTracker {
         // and we leave currentOpenFile/currentSnapshot untouched and consistent, so
         // the next refresh can retry cleanly.
         TrackedFile newFile = newSnapshot.get(index);
-        newFile.open(offset);
-        closeCurrentFileIfOpen();
+        openReplacingCurrentFile(newFile, offset);
         currentOpenFile = newFile;
         currentOpenFileIndex = index;
         LOGGER.trace("Resumed tailing file (index {}): {}", currentOpenFileIndex, currentOpenFile);
@@ -409,8 +469,7 @@ public class SourceFileTracker {
         // the next refresh can retry cleanly instead of wedging the tailer in a
         // permanent error loop.
         TrackedFile newFile = newSnapshot.get(index);
-        newFile.open(0);
-        closeCurrentFileIfOpen();
+        openReplacingCurrentFile(newFile, 0);
         currentOpenFile = newFile;
         currentOpenFileIndex = index;
         LOGGER.trace("Started tailing new file (index {}): {}", currentOpenFileIndex, currentOpenFile);
@@ -492,6 +551,7 @@ public class SourceFileTracker {
     }
 
     protected boolean onTruncationWithoutRotation(TrackedFileList newSnapshot) throws IOException {
+        truncatedWithoutRotation = true;
         return onTrackingAnomaly("Current file was apparently truncated but can't find file with older data to track.", newSnapshot, true);
     }
 
