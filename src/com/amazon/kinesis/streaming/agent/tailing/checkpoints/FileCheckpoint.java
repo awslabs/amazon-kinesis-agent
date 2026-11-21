@@ -28,18 +28,31 @@ import lombok.ToString;
  * (and potentially path).
  */
 @ToString
-@EqualsAndHashCode(exclude={"file"})
+@EqualsAndHashCode(exclude={"file", "fingerprint"})
 public class FileCheckpoint {
     @Getter private final TrackedFile file;
     @Getter private final long offset;
     @Getter private final FileId fileId;
     @Getter private final String flowId;
+    /**
+     * Content fingerprint of the bytes before {@link #getOffset()}, or {@code null} when there is none
+     * (offset 0, file no longer readable at its path, or a checkpoint written by an older agent).
+     */
+    @Getter private final FileFingerprint fingerprint;
 
     public FileCheckpoint(TrackedFile file, long offset) {
+        this(file, offset, null);
+    }
+
+    public FileCheckpoint(TrackedFile file, long offset, FileFingerprint fingerprint) {
         Preconditions.checkNotNull(file);
         Preconditions.checkArgument(offset >= 0, "The offset (%s) must be a non-negative integer", offset);
+        Preconditions.checkArgument(fingerprint == null || fingerprint.getOffset() == offset,
+                "The fingerprint offset (%s) must match the checkpoint offset (%s)",
+                fingerprint == null ? null : fingerprint.getOffset(), offset);
         this.file = file;
         this.offset = offset;
+        this.fingerprint = fingerprint;
         fileId = file.getId();
         flowId = file.getFlow().getId();
     }

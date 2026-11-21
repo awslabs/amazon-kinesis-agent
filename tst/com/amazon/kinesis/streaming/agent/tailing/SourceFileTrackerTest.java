@@ -29,6 +29,7 @@ import com.amazon.kinesis.streaming.agent.tailing.SourceFileTracker;
 import com.amazon.kinesis.streaming.agent.tailing.TrackedFile;
 import com.amazon.kinesis.streaming.agent.tailing.TrackedFileList;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
+import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileFingerprint;
 import com.amazon.kinesis.streaming.agent.tailing.testing.CopyFileRotator;
 import com.amazon.kinesis.streaming.agent.tailing.testing.FileRotator;
 import com.amazon.kinesis.streaming.agent.tailing.testing.RememberedTrackedFile;
@@ -101,6 +102,145 @@ public class SourceFileTrackerTest extends TailingTestBase {
         Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
         Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), offset);
         Assert.assertFalse(tracker.newerFilesPending());
+    }
+
+    /**
+     * A checkpoint whose file ID was reused by a newer, smaller file (inode reuse): the tracker matches the new file
+     * by ID, sees the checkpoint offset is past its end and resets. The reset must leave that file open at 0
+     * instead of opening and then closing the same object, which made the parser reject it and the agent crash-loop.
+     */
+    @Test(dataProvider="rotators")
+    public void testInitializeWithCheckpointBeyondEndOfFileWithReusedIdKeepsFileOpen(FileRotatorFactory rotatorFactory) throws IOException {
+        FileRotator rotator = rotatorFactory.create();
+        SourceFileTracker tracker = getTracker(rotator);
+        rotator.rotate();
+        Path newFile = rotator.getLatestFile();
+        long newFileSize = Files.size(newFile);
+        // Checkpoint for a deleted file at another path that had the same ID and was larger
+        Path deletedFile = newFile.resolveSibling(newFile.getFileName() + ".deleted");
+        TrackedFile staleFile = new TrackedFile(tracker.flow, deletedFile, FileId.get(newFile), 0, newFileSize + 1000);
+        FileCheckpoint cp = new FileCheckpoint(staleFile, newFileSize + 1000);
+
+        Assert.assertFalse(tracker.initialize(cp));
+        Assert.assertTrue(tracker.isCheckpointFileReplaced());
+        Assert.assertNotNull(tracker.getCurrentOpenFile());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getPath(), newFile);
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen(), "file must stay open after the reset");
+        Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), 0);
+    }
+
+    /** Builds a checkpoint as if a deleted file at another path had {@code newFile}'s ID and {@code content}. */
+    private FileCheckpoint checkpointForReusedId(SourceFileTracker tracker, Path newFile, byte[] content, long offset)
+            throws IOException {
+        Path deletedFile = newFile.resolveSibling(newFile.getFileName() + ".deleted");
+        Path contentFile = testFiles.createTempFile();
+        Files.write(contentFile, content);
+        FileFingerprint fp = FileFingerprint.compute(contentFile, FileId.get(contentFile), offset,
+                FileFingerprint.DEFAULT_SIZE_BYTES);
+        Assert.assertNotNull(fp);
+        TrackedFile staleFile = new TrackedFile(tracker.flow, deletedFile, FileId.get(newFile), 0, content.length);
+        return new FileCheckpoint(staleFile, offset, fp);
+    }
+
+    /**
+     * Inode reuse where the new file is already larger than the checkpoint offset: the size check passes, so only
+     * the fingerprint shows it is a different file. It must be tailed from 0, not resumed at the stale offset.
+     */
+    @Test(dataProvider="rotators")
+    public void testInitializeWithReusedIdAndDifferentContentStartsFromBeginning(FileRotatorFactory rotatorFactory) throws IOException {
+        FileRotator rotator = rotatorFactory.create();
+        SourceFileTracker tracker = getTracker(rotator);
+        rotator.rotate();
+        Path newFile = rotator.getLatestFile();
+        long size = Files.size(newFile);
+        Assert.assertTrue(size > 10);
+        long offset = size / 2;
+        byte[] otherContent = new byte[(int) size];
+        java.util.Arrays.fill(otherContent, (byte) 'x');
+        FileCheckpoint cp = checkpointForReusedId(tracker, newFile, otherContent, offset);
+
+        Assert.assertFalse(tracker.initialize(cp));
+        Assert.assertTrue(tracker.isCheckpointFileReplaced());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getPath(), newFile);
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), 0);
+    }
+
+    /**
+     * copytruncate + compress while the agent was stopped: the checkpointed file is truncated in place (same path,
+     * same inode) and the rotated copy is not visible. The tracker must not fail, and must tail the file from 0 and
+     * flag it so the tailer parses from the beginning instead of the initial position.
+     */
+    @Test
+    public void testInitializeWithCheckpointFileTruncatedInPlaceWithNoCopyStartsFromBeginning() throws IOException {
+        Path file = testFiles.createTempFile();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            sb.append("{\"n\":").append(i).append("}\n");
+        }
+        Files.write(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+        FileFlow<?> flow = new FileFlowFactory().getFileFlow(context, new Configuration(getTestFlowConfig(file.toString())));
+        SourceFileTracker tracker = new SourceFileTracker(context, flow);
+        TrackedFile original = new TrackedFile(flow, file);
+        FileCheckpoint cp = new FileCheckpoint(original, Files.size(file));
+
+        Files.write(file, "{\"n\":0}\n".getBytes(StandardCharsets.UTF_8));   // truncate in place, keep the inode
+        Assert.assertEquals(FileId.get(file), original.getId());
+
+        Assert.assertFalse(tracker.initialize(cp));
+        Assert.assertTrue(tracker.isCheckpointFileReplaced());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getPath(), file);
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), 0);
+    }
+
+    /**
+     * The agent was behind when it stopped (checkpointed file size 1,000, offset 800). While it was down the file
+     * was truncated in place and 900 new bytes were written: smaller than the stored size, so the analyzer treats
+     * it as truncated, but not smaller than the offset. The file must still be tailed from 0 and flagged.
+     */
+    @Test
+    public void testInitializeWithTruncatedFileBetweenOffsetAndStoredSizeStartsFromBeginning() throws IOException {
+        Path file = testFiles.createTempFile();
+        Files.write(file, new byte[0]);
+        FileFlow<?> flow = new FileFlowFactory().getFileFlow(context, new Configuration(getTestFlowConfig(file.toString())));
+        SourceFileTracker tracker = new SourceFileTracker(context, flow);
+        // checkpoint: stored size 1,000, offset 800, old mtime
+        TrackedFile checkpointed = new TrackedFile(flow, file, FileId.get(file), 0, 1000);
+        FileCheckpoint cp = new FileCheckpoint(checkpointed, 800);
+
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() < 900) {
+            sb.append("{\"n\":").append(sb.length()).append("}\n");
+        }
+        byte[] content = sb.toString().substring(0, 899).concat("\n").getBytes(StandardCharsets.UTF_8);
+        Files.write(file, content);   // same path, same inode, 900 bytes: offset <= size < stored size
+        Assert.assertEquals(Files.size(file), 900);
+        Assert.assertEquals(FileId.get(file), checkpointed.getId());
+
+        Assert.assertFalse(tracker.initialize(cp));
+        Assert.assertTrue(tracker.isCheckpointFileReplaced());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getPath(), file);
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), 0);
+    }
+
+    /** A real rename keeps its content, so the fingerprint matches and the checkpoint offset is used. */
+    @Test(dataProvider="rotators")
+    public void testInitializeWithMatchingFingerprintResumesAtCheckpoint(FileRotatorFactory rotatorFactory) throws IOException {
+        FileRotator rotator = rotatorFactory.create();
+        SourceFileTracker tracker = getTracker(rotator);
+        rotator.rotate();
+        Path newFile = rotator.getLatestFile();
+        long offset = Files.size(newFile) / 2;
+        Assert.assertTrue(offset > 0);
+        FileCheckpoint cp = checkpointForReusedId(tracker, newFile, Files.readAllBytes(newFile), offset);
+
+        Assert.assertTrue(tracker.initialize(cp));
+        Assert.assertFalse(tracker.isCheckpointFileReplaced());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getPath(), newFile);
+        Assert.assertTrue(tracker.getCurrentOpenFile().isOpen());
+        Assert.assertEquals(tracker.getCurrentOpenFile().getCurrentOffset(), offset);
     }
 
     @Test(dataProvider="rotators")

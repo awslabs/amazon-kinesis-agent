@@ -17,6 +17,7 @@ import java.nio.channels.ClosedByInterruptException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.amazonaws.services.kinesis.model.ValidationException;
 import lombok.Getter;
 
 import org.slf4j.Logger;
@@ -215,6 +216,7 @@ class SimplePublisher<R extends IRecord> implements IHeartbeatProvider {
     protected boolean isRetriableSendException(Throwable t) {
         return !(t instanceof NullPointerException) &&
                 !(t instanceof IllegalArgumentException) &&
+                !(t instanceof ValidationException) &&
                 !(t instanceof IllegalStateException) &&
                 !(t instanceof ClassCastException) &&
                 !(t instanceof IndexOutOfBoundsException) &&

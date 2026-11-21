@@ -7,8 +7,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +27,8 @@ import org.testng.annotations.Test;
 
 import com.amazon.kinesis.streaming.agent.AgentContext;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
+import com.amazon.kinesis.streaming.agent.config.ConfigurationException;
+import com.amazon.kinesis.streaming.agent.tailing.FileId;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow;
 import com.amazon.kinesis.streaming.agent.tailing.FirehoseConstants;
 import com.amazon.kinesis.streaming.agent.tailing.FirehoseFileFlow;
@@ -211,5 +218,195 @@ public class SQLiteFileCheckpointStoreTest extends TailingTestBase {
         Assert.assertTrue(Files.isDirectory(parentDir));
         Assert.assertTrue(Files.exists(dbFile));
         Assert.assertTrue(Files.isRegularFile(dbFile));
+    }
+
+    // ---------------------------------------------------------------- fingerprints
+
+    private Path writeLines(String prefix, int count) throws IOException {
+        Path file = testFiles.createTempFile();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= count; i++) {
+            sb.append("{\"file\":\"").append(prefix).append("\",\"n\":").append(i).append("}\n");
+        }
+        Files.write(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    @SuppressWarnings("serial")
+    private SQLiteFileCheckpointStore getStore(final Path dbFile) {
+        return (SQLiteFileCheckpointStore) getTestCheckpointStore(dbFile);
+    }
+
+    private static Connection rawConnection(Path dbFile) throws SQLException {
+        return DriverManager.getConnection("jdbc:sqlite:" + dbFile);
+    }
+
+    private static int countFingerprints(Connection connection) throws SQLException {
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery("select count(*) from FILE_FINGERPRINTS")) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
+    @Test
+    public void testFingerprintSavedAndLoaded() throws IOException {
+        FileCheckpointStore store = getTestCheckpointStore();
+        Path file = writeLines("A", 200);
+        long offset = Files.size(file) - 50;
+        TrackedFile tf = new TrackedFile(getTestFlow("fpflow", file.toString()), file);
+        FileCheckpoint cp = store.saveCheckpoint(tf, offset);
+
+        FileFingerprint expected = FileFingerprint.compute(file, FileId.get(file), offset, FileFingerprint.DEFAULT_SIZE_BYTES);
+        Assert.assertNotNull(expected);
+        Assert.assertEquals(cp.getFingerprint(), expected);
+        Assert.assertEquals(store.getCheckpointForPath(tf.getFlow(), file).getFingerprint(), expected);
+        Assert.assertEquals(store.getCheckpointForFlow(tf.getFlow()).getFingerprint(), expected);
+    }
+
+    @Test
+    public void testNoFingerprintWhenOffsetPastEndOfFile() throws IOException {
+        FileCheckpointStore store = getTestCheckpointStore();
+        Path file = writeLines("A", 5);
+        TrackedFile tf = new TrackedFile(getTestFlow("fpflow", file.toString()), file);
+        FileCheckpoint cp = store.saveCheckpoint(tf, Files.size(file) + 1);
+        Assert.assertNotNull(cp);
+        Assert.assertNull(cp.getFingerprint());
+        Assert.assertNull(store.getCheckpointForPath(tf.getFlow(), file).getFingerprint());
+    }
+
+    @Test
+    public void testCheckpointWithoutFingerprintReplacesOldFingerprint() throws Exception {
+        Path dbFile = testFiles.getTempFilePath();
+        SQLiteFileCheckpointStore store = getStore(dbFile);
+        Path file = writeLines("A", 200);
+        TrackedFile tf = new TrackedFile(getTestFlow("fpflow", file.toString()), file);
+        Assert.assertNotNull(store.saveCheckpoint(tf, 500).getFingerprint());
+        // Same path, but the file is now a different file: no fingerprint, and the old one must not linger
+        Files.delete(file);
+        Assert.assertNull(store.saveCheckpoint(tf, 600).getFingerprint());
+        Assert.assertEquals(countFingerprints(store.connection), 0);
+        Assert.assertNull(store.getCheckpointForPath(tf.getFlow(), file).getFingerprint());
+    }
+
+    /** A database created by an older agent has no FILE_FINGERPRINTS table: it must load, with no fingerprints. */
+    @Test
+    public void testOpensDatabaseFromOlderAgent() throws Exception {
+        Path dbFile = testFiles.getTempFilePath();
+        Path file = writeLines("A", 200);
+        FileFlow<?> flow = getTestFlow("legacyflow", file.toString());
+        try (Connection old = rawConnection(dbFile); Statement st = old.createStatement()) {
+            st.executeUpdate("create table FILE_CHECKPOINTS(flow text, path text, fileId text, lastModifiedTime bigint, "
+                    + "size bigint, offset bigint, lastUpdated datetime, primary key (flow, path))");
+            try (PreparedStatement insert = old.prepareStatement(
+                    "insert into FILE_CHECKPOINTS values(?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))")) {
+                insert.setString(1, flow.getId());
+                insert.setString(2, file.toAbsolutePath().toString());
+                insert.setString(3, FileId.get(file).toString());
+                insert.setLong(4, 0);
+                insert.setLong(5, Files.size(file));
+                insert.setLong(6, 1234);
+                insert.executeUpdate();
+            }
+        }
+        SQLiteFileCheckpointStore store = getStore(dbFile);
+        FileCheckpoint cp = store.getCheckpointForPath(flow, file);
+        Assert.assertNotNull(cp);
+        Assert.assertEquals(cp.getOffset(), 1234);
+        Assert.assertNull(cp.getFingerprint());
+        Assert.assertNull(store.getCheckpointForFlow(flow).getFingerprint());
+        // and new checkpoints get fingerprints from now on
+        Assert.assertNotNull(store.saveCheckpoint(new TrackedFile(flow, file), 2000).getFingerprint());
+    }
+
+    /**
+     * After a downgrade an older agent writes FILE_CHECKPOINTS with its positional insert and plain updates. Its
+     * insert must still work with the new database, and a fingerprint left behind for an updated checkpoint must
+     * not be applied to the new offset.
+     */
+    @Test
+    public void testOlderAgentWritesAfterUpgrade() throws Exception {
+        Path dbFile = testFiles.getTempFilePath();
+        SQLiteFileCheckpointStore store = getStore(dbFile);
+        Path file1 = writeLines("A", 200);
+        Path file2 = writeLines("B", 200);
+        FileFlow<?> flow = getTestFlow("downgradeflow", file1.toString());
+        Assert.assertNotNull(store.saveCheckpoint(new TrackedFile(flow, file1), 500).getFingerprint());
+
+        try (Connection old = rawConnection(dbFile)) {
+            try (PreparedStatement update = old.prepareStatement(
+                    "update FILE_CHECKPOINTS set offset=?, lastUpdated=strftime('%Y-%m-%d %H:%M:%f', 'now') where flow=? and path=?")) {
+                update.setLong(1, 900);
+                update.setString(2, flow.getId());
+                update.setString(3, file1.toAbsolutePath().toString());
+                Assert.assertEquals(update.executeUpdate(), 1);
+            }
+            try (PreparedStatement insert = old.prepareStatement(
+                    "insert or ignore into FILE_CHECKPOINTS values(?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))")) {
+                insert.setString(1, flow.getId());
+                insert.setString(2, file2.toAbsolutePath().toString());
+                insert.setString(3, FileId.get(file2).toString());
+                insert.setLong(4, 0);
+                insert.setLong(5, Files.size(file2));
+                insert.setLong(6, 300);
+                Assert.assertEquals(insert.executeUpdate(), 1);
+            }
+        }
+
+        FileCheckpoint cp1 = store.getCheckpointForPath(flow, file1);
+        Assert.assertEquals(cp1.getOffset(), 900);
+        Assert.assertNull(cp1.getFingerprint(), "fingerprint for offset 500 must not apply to offset 900");
+        FileCheckpoint cp2 = store.getCheckpointForPath(flow, file2);
+        Assert.assertEquals(cp2.getOffset(), 300);
+        Assert.assertNull(cp2.getFingerprint());
+
+        // The cleanup drops the stale fingerprint row
+        store.deleteOldData();
+        Assert.assertEquals(countFingerprints(store.connection), 0);
+    }
+
+    @Test
+    public void testDeleteOldDataRemovesFingerprintsOfDeletedCheckpoints() throws Exception {
+        SQLiteFileCheckpointStore store = (SQLiteFileCheckpointStore) getTestCheckpointStore();
+        Path file = writeLines("A", 200);
+        FileFlow<?> flow = getTestFlow("ttlflow", file.toString());
+        store.saveCheckpoint(new TrackedFile(flow, file), 500);
+        Assert.assertEquals(countFingerprints(store.connection), 1);
+
+        PreparedStatement update = store.connection.prepareStatement(
+                "update FILE_CHECKPOINTS set lastUpdated = datetime(?) where flow=?");
+        update.setString(1, "2014-01-01");
+        update.setString(2, flow.getId());
+        Assert.assertEquals(update.executeUpdate(), 1);
+        store.connection.commit();
+
+        store.deleteOldData();
+        Assert.assertNull(store.getCheckpointForPath(flow, file));
+        Assert.assertEquals(countFingerprints(store.connection), 0);
+    }
+
+    @SuppressWarnings("serial")
+    @Test
+    public void testFingerprintSizeIsConfigurable() throws IOException {
+        FileCheckpointStore store = getTestCheckpointStore(new HashMap<String, Object>() {{
+            put(SQLiteFileCheckpointStore.FINGERPRINT_SIZE_KEY, 100);
+        }});
+        Path file = writeLines("A", 200);
+        FileCheckpoint cp = store.saveCheckpoint(new TrackedFile(getTestFlow("sizeflow", file.toString()), file), 1000);
+        Assert.assertEquals(cp.getFingerprint().getHeadLength(), 100);
+        Assert.assertEquals(cp.getFingerprint().getTailLength(), 100);
+    }
+
+    @DataProvider(name = "badFingerprintSizes")
+    public Object[][] badFingerprintSizes() {
+        return new Object[][] { { 0 }, { FileFingerprint.MIN_SIZE_BYTES - 1 }, { FileFingerprint.MAX_SIZE_BYTES + 1 } };
+    }
+
+    @SuppressWarnings("serial")
+    @Test(dataProvider = "badFingerprintSizes", expectedExceptions = ConfigurationException.class)
+    public void testFingerprintSizeOutOfRange(final int size) {
+        getTestCheckpointStore(new HashMap<String, Object>() {{
+            put(SQLiteFileCheckpointStore.FINGERPRINT_SIZE_KEY, size);
+        }});
     }
 }

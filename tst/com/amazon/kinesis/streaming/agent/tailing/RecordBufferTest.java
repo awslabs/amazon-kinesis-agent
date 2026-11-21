@@ -61,7 +61,7 @@ public class RecordBufferTest extends TailingTestBase {
 
         // Verify that age accounting is not affected by second record
         now = System.currentTimeMillis();
-        age = buffer.age();
+        age = buffer.age(now);
         assertTrue(age <= now - beforeAddingFirstRecord);
         assertTrue(age >= now - afterAddingFirstRecord);
     }

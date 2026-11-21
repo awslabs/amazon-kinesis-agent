@@ -3,19 +3,24 @@
  */
 package com.amazon.kinesis.streaming.agent.tailing;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Permission;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -28,11 +33,13 @@ import com.amazon.kinesis.streaming.agent.tailing.TrackedFile;
 import com.amazon.kinesis.streaming.agent.tailing.FileFlow.InitialPosition;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpoint;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileCheckpointStore;
+import com.amazon.kinesis.streaming.agent.tailing.checkpoints.FileFingerprint;
 import com.amazon.kinesis.streaming.agent.tailing.checkpoints.SQLiteFileCheckpointStore;
 import com.amazon.kinesis.streaming.agent.tailing.testing.FileRotator;
 import com.amazon.kinesis.streaming.agent.tailing.testing.FileSender;
 import com.amazon.kinesis.streaming.agent.tailing.testing.RememberedTrackedFile;
 import com.amazon.kinesis.streaming.agent.tailing.testing.TailingTestBase;
+import com.amazon.kinesis.streaming.agent.tailing.testing.TestSecurityManager;
 import com.amazon.kinesis.streaming.agent.tailing.testing.TestableFileTailer;
 import com.amazon.kinesis.streaming.agent.tailing.testing.FileSender.FileSenderFactory;
 import com.amazon.kinesis.streaming.agent.testing.TestUtils;
@@ -281,6 +288,146 @@ public class FileTailerTest extends TailingTestBase {
         }.call();
     }
 
+    @Test(dataProvider="rotatorsSendersTailersInitialPosition", timeOut=TEST_TIMEOUT, skipFailedInvocations=true, invocationCount=TEST_REPS)
+    public void testErrorHandlingInRunLoop(
+            FileRotatorFactory rotatorFactory,
+            TestableFileTailerFactory<FirehoseRecord> ignoredTailerFactory,
+            FileSenderFactory<FirehoseRecord> senderFactory,
+            InitialPosition initialPosition) throws Exception {
+        SecurityManager originalSecurityManager = System.getSecurityManager();
+        final AtomicBoolean exitCalled = new AtomicBoolean(false);
+        SecurityManager testSecurityManager= new TestSecurityManager(exitCalled);
+
+        try {
+            TestableFileTailerFailureFactory failureFactory = new TestableFileTailerFailureFactory();
+            System.setSecurityManager(testSecurityManager);
+            new TailerTestRunner(true, rotatorFactory, senderFactory, failureFactory, null, initialPosition) {
+                @Override
+                protected void startTailer() {
+                    // The failing tailer throws on its first loop, so it can reach FAILED before
+                    // awaitRunning() observes RUNNING. Don't wait for RUNNING here; waitForSystemExit()
+                    // below is the real check that the run loop error reached application shutdown.
+                    tailer.startAsync(startPaused);
+                }
+
+                @Override
+                protected void doRun() throws Exception {
+                    // Wait for the exit to be called or timeout. Error occurs on tailer thread and needs to reach application shutdown
+                    waitForSystemExit(exitCalled);
+                }
+
+                @Override
+                protected void end() {
+                    // Skip normal cleanup since we expect the tailer to be in an error state
+                }
+            }.call();
+
+        } finally {
+            System.setSecurityManager(originalSecurityManager);
+        }
+
+        assertTrue(exitCalled.get(), "System.exit should have been called");
+    }
+
+    /**
+     * Inode reuse with initialPosition END_OF_FILE: a file that has the checkpointed file's ID but different content
+     * was created after the checkpoint, so none of it was sent. It must be parsed from offset 0, not from its end.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testInitializeWithReusedFileIdParsesFromBeginningWithEndOfFile() throws Exception {
+        FileRotator rotator = new CreateFileRotatorFactory().create();
+        rotator.rotate();
+        Path newFile = rotator.getLatestFile();
+        long size = Files.size(newFile);
+        long offset = size / 2;
+        assertTrue(offset > 0);
+        AgentContext context = getTestAgentContext(rotator.getInputFileGlob(), new HashMap<String, Object>());
+        FileFlow<FirehoseRecord> flow = spy((FileFlow<FirehoseRecord>) context.flows().get(0));
+        when(flow.getInitialPosition()).thenReturn(InitialPosition.END_OF_FILE);
+
+        // Checkpoint of a deleted file that had the same ID but other content
+        Path otherContent = testFiles.createTempFile();
+        byte[] bytes = new byte[(int) size];
+        Arrays.fill(bytes, (byte) 'x');
+        Files.write(otherContent, bytes);
+        FileFingerprint fp = FileFingerprint.compute(otherContent, FileId.get(otherContent), offset,
+                FileFingerprint.DEFAULT_SIZE_BYTES);
+        TrackedFile stale = new TrackedFile(flow, newFile.resolveSibling(newFile.getFileName() + ".deleted"),
+                FileId.get(newFile), 0, size);
+        FileCheckpoint cp = new FileCheckpoint(stale, offset, fp);
+        FileCheckpointStore checkpoints = mock(FileCheckpointStore.class);
+        when(checkpoints.getCheckpointForFlow(flow)).thenReturn(cp);
+
+        TestableFileTailer<FirehoseRecord> tailer = TestableFileTailer.createFirehoseTailer(
+                context, flow, mock(FileSender.class), checkpoints);
+        tailer.initialize();
+        assertEquals(tailer.fileTracker.getCurrentOpenFile().getPath(), newFile);
+        assertTrue(tailer.fileTracker.isCheckpointFileReplaced());
+        assertTrue(tailer.parser.isParsing());
+        assertEquals(tailer.parser.getCurrentFile().getCurrentOffset(), 0, "must not skip to END_OF_FILE");
+    }
+
+    /**
+     * copytruncate + compress while the agent was stopped, initialPosition END_OF_FILE: the lines written to the
+     * truncated file before the agent started were never sent, so they must be parsed from offset 0.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testInitializeWithCheckpointFileTruncatedInPlaceParsesFromBeginningWithEndOfFile() throws Exception {
+        Path file = testFiles.createTempFile();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            sb.append("{\"n\":").append(i).append("}\n");
+        }
+        Files.write(file, sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        AgentContext context = getTestAgentContext(file.toString(), new HashMap<String, Object>());
+        FileFlow<FirehoseRecord> flow = spy((FileFlow<FirehoseRecord>) context.flows().get(0));
+        when(flow.getInitialPosition()).thenReturn(InitialPosition.END_OF_FILE);
+        FileCheckpoint cp = new FileCheckpoint(new TrackedFile(flow, file), Files.size(file));
+        FileCheckpointStore checkpoints = mock(FileCheckpointStore.class);
+        when(checkpoints.getCheckpointForFlow(flow)).thenReturn(cp);
+
+        Files.write(file, "{\"n\":0}\n{\"n\":1}\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));   // truncate in place
+
+        TestableFileTailer<FirehoseRecord> tailer = TestableFileTailer.createFirehoseTailer(
+                context, flow, mock(FileSender.class), checkpoints);
+        tailer.initialize();
+        assertTrue(tailer.fileTracker.isCheckpointFileReplaced());
+        assertEquals(tailer.parser.getCurrentFile().getPath(), file);
+        assertEquals(tailer.parser.getCurrentFile().getCurrentOffset(), 0, "must not skip to END_OF_FILE");
+    }
+
+    /**
+     * Agent behind at stop (stored size 1,000 > offset 800), file truncated in place and refilled to 900 bytes:
+     * with END_OF_FILE the 900 bytes must still be parsed from offset 0.
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testInitializeWithTruncatedFileBetweenOffsetAndStoredSizeParsesFromBeginningWithEndOfFile() throws Exception {
+        Path file = testFiles.createTempFile();
+        Files.write(file, new byte[0]);
+        AgentContext context = getTestAgentContext(file.toString(), new HashMap<String, Object>());
+        FileFlow<FirehoseRecord> flow = spy((FileFlow<FirehoseRecord>) context.flows().get(0));
+        when(flow.getInitialPosition()).thenReturn(InitialPosition.END_OF_FILE);
+        FileCheckpoint cp = new FileCheckpoint(new TrackedFile(flow, file, FileId.get(file), 0, 1000), 800);
+        FileCheckpointStore checkpoints = mock(FileCheckpointStore.class);
+        when(checkpoints.getCheckpointForFlow(flow)).thenReturn(cp);
+
+        StringBuilder sb = new StringBuilder();
+        while (sb.length() < 900) {
+            sb.append("{\"n\":").append(sb.length()).append("}\n");
+        }
+        Files.write(file, sb.toString().substring(0, 899).concat("\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertEquals(Files.size(file), 900L);
+
+        TestableFileTailer<FirehoseRecord> tailer = TestableFileTailer.createFirehoseTailer(
+                context, flow, mock(FileSender.class), checkpoints);
+        tailer.initialize();
+        assertTrue(tailer.fileTracker.isCheckpointFileReplaced());
+        assertEquals(tailer.parser.getCurrentFile().getCurrentOffset(), 0, "must not skip to END_OF_FILE");
+    }
+
     @DataProvider(name = "rotatorsSendersTailersInitialPosition")
     public Object[][] getrotatorsSendersTailersInitialPositionData() throws IOException {
         Object[][] initialPositions = new Object[][] {
@@ -323,6 +470,16 @@ public class FileTailerTest extends TailingTestBase {
                 //{new FileSender.MisbehavingFileSenderFactory<FirehoseRecord>()},
         };
         return senders;
+    }
+
+    private void waitForSystemExit(AtomicBoolean exitCalled) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        while (!exitCalled.get()) {
+            if (System.currentTimeMillis() - startTime > 5000) {
+                fail("Timeout waiting for System.exit to be called");
+            }
+            Thread.sleep(100);
+        }
     }
 
     public abstract class TailerTestRunner implements Callable<Void> {
@@ -474,6 +631,15 @@ public class FileTailerTest extends TailingTestBase {
         @Override
         protected TestableFileTailer<FirehoseRecord> create(AgentContext context, FileFlow<FirehoseRecord> flow, FileSender<FirehoseRecord> sender, FileCheckpointStore checkpoints) throws IOException {
             return TestableFileTailer.createFirehoseTailer(context, flow, sender, checkpoints);
+        }
+    }
+
+    public class TestableFileTailerFailureFactory extends TestableFileTailerFactory<FirehoseRecord> {
+        @Override
+        protected TestableFileTailer<FirehoseRecord> create(AgentContext context,
+                FileFlow<FirehoseRecord> flow, FileSender<FirehoseRecord> sender,
+                FileCheckpointStore checkpoints) throws IOException {
+            return TestableFileTailer.createFailingTailer(context, flow, sender, checkpoints);
         }
     }
 }

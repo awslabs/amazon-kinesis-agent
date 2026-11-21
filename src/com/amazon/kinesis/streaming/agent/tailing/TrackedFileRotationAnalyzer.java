@@ -160,8 +160,12 @@ public class TrackedFileRotationAnalyzer {
      */
     public int findCurrentOpenFileAfterTruncate() {
         Preconditions.checkNotNull(currentOpenFile);
-        Preconditions.checkState(incoming.size() > 1); // always true after rotation by Truncate
-        Preconditions.checkState(hasCounterpart(incoming.get(0))); // always true for rotation by Truncate
+        // A truncate does not always leave a rotated copy we can see: with logrotate copytruncate + compress the
+        // copy can end in a compressed extension (.gz, .bz2, .zip), which SourceFile ignores, and the copy can 
+        // also be outside the file pattern. Report "not found" so the caller resets tailing instead of failing startup.
+        if (incoming.size() <= 1 || !hasCounterpart(incoming.get(0))) {
+            return -1;
+        }
         // In case of rotation by Truncate, the current open file
         // MUST have a counterpart: either the latest file, or a previously
         // rotated file. If not, this is an anomaly (could happen if

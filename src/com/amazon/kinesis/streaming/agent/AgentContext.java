@@ -171,7 +171,7 @@ public class AgentContext extends AgentConfiguration implements IMetricsContext 
         }
         return firehoseClient;
     }
-    
+
     public synchronized AmazonKinesisClient getKinesisClient() {
         if (kinesisClient == null) {
             if (!Strings.isNullOrEmpty(kinesisEndpoint()) && Strings.isNullOrEmpty(kinesisRegion())) {

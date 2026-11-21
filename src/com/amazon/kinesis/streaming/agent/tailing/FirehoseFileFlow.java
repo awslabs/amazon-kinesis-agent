@@ -30,7 +30,7 @@ import com.google.common.collect.Range;
 @ToString(callSuper=true)
 public class FirehoseFileFlow extends FileFlow<FirehoseRecord> {
     public static final Range<Long> VALID_MAX_BUFFER_AGE_RANGE_MILLIS = Range.closed(
-            TimeUnit.SECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(15));
+            TimeUnit.MILLISECONDS.toMillis(1), TimeUnit.MINUTES.toMillis(15));
     public static final Range<Integer> VALID_MAX_BUFFER_SIZE_RECORDS_RANGE = Range.closed(1, FirehoseConstants.MAX_BUFFER_SIZE_RECORDS);
     public static final Range<Integer> VALID_MAX_BUFFER_SIZE_BYTES_RANGE = Range.closed(1, FirehoseConstants.MAX_BUFFER_SIZE_BYTES);
     public static final Range<Long> VALID_WAIT_ON_FULL_PUBLISH_QUEUE_MILLIS_RANGE = Range.closed(
