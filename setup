@@ -94,6 +94,7 @@ download_jar() {
   # file already present? verify it before trusting it; re-download on mismatch
   if [[ -f ${jar_dest} ]]; then
     if [[ "$(sha256_of ${jar_dest})" == "${expected_sha256}" ]]; then
+      echo "Checksum verified for cached $jar_name, skipping download."
       return
     fi
     echo "Checksum mismatch for cached ${jar_name}; re-downloading."
@@ -112,6 +113,7 @@ download_jar() {
     fail "Checksum mismatch for $jar_name: expected ${expected_sha256}, got ${actual_sha256}. Refusing to use this dependency."
   fi
 
+  echo "Checksum verified for $jar_name."
   mv ${tmp_dest} ${jar_dest}
 
   # Purge our temp file regardless of the status here
