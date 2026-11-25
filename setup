@@ -91,8 +91,14 @@ download_jar() {
   jar_dest=$dependencies_dir/$jar_name
   url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
 
-  # file exists? then don't download it!
-  [[ -f ${jar_dest} ]] && return
+  # file already present? verify it before trusting it; re-download on mismatch
+  if [[ -f ${jar_dest} ]]; then
+    if [[ "$(sha256_of ${jar_dest})" == "${expected_sha256}" ]]; then
+      return
+    fi
+    echo "Checksum mismatch for cached ${jar_name}; re-downloading."
+    rm -f ${jar_dest}
+  fi
 
   # download the file to a temp location; fail the build on any download error
   echo "Downloading $jar_name ($url)..."
