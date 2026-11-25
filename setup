@@ -68,24 +68,45 @@ fail() {
   exit 1
 }
 
+# Computes the SHA-256 digest of a file using whichever hashing tool is available.
+sha256_of() {
+  if which sha256sum > /dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif which shasum > /dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    fail "No SHA-256 tool (sha256sum or shasum) found; cannot verify downloaded dependencies"
+  fi
+}
+
 download_jar() {
   group_id=$1
   artifact_id=$2
   version=$3
-  prefix="http://search.maven.org/remotecontent?filepath="
+  expected_sha256=$4
+  prefix="https://search.maven.org/remotecontent?filepath="
   path=${group_id//.//}
   jar_name=$artifact_id-$version.jar
   tmp_dest=$(mktemp -u)
   jar_dest=$dependencies_dir/$jar_name
   url=${prefix}${path}/${artifact_id}/${version}/${jar_name}
-  
+
   # file exists? then don't download it!
   [[ -f ${jar_dest} ]] && return
 
-  # download the file to a temp location, then if move it here if successful
+  # download the file to a temp location; fail the build on any download error
   echo "Downloading $jar_name ($url)..."
-  wget -q -P ${dependencies_dir} $url -O ${tmp_dest} && \
-    mv ${tmp_dest} ${jar_dest}
+  wget -q -P ${dependencies_dir} $url -O ${tmp_dest} || \
+    fail "Failed to download $jar_name from $url"
+
+  # verify the downloaded file's checksum before trusting it with the build
+  actual_sha256=$(sha256_of ${tmp_dest})
+  if [[ "${actual_sha256}" != "${expected_sha256}" ]]; then
+    rm -f ${tmp_dest}
+    fail "Checksum mismatch for $jar_name: expected ${expected_sha256}, got ${actual_sha256}. Refusing to use this dependency."
+  fi
+
+  mv ${tmp_dest} ${jar_dest}
 
   # Purge our temp file regardless of the status here
   rm -f ${tmp_dest}
@@ -99,39 +120,41 @@ download_dependencies() {
   
   echo "Downloading dependencies ..."
   aws_java_sdk_version="1.12.390"
-  
-  remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version} \
-                  com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version} \
-                  com.fasterxml.jackson.core:jackson-annotations:2.17.2\
-                  com.fasterxml.jackson.core:jackson-core:2.17.2 \
-                  com.fasterxml.jackson.core:jackson-databind:2.17.2 \
-                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.17.2 \
-                  com.google.code.findbugs:jsr305:3.0.1 \
-                  com.google.guava:guava:32.0.0-jre \
-                  org.apache.httpcomponents:httpclient:4.5.13 \
-                  org.apache.httpcomponents:httpclient-cache:4.5.1 \
-                  org.apache.httpcomponents:httpmime:4.5.1 \
-                  org.apache.httpcomponents:httpcore:4.4.3 \
-                  org.apache.httpcomponents:httpcore-ab:4.4.3 \
-                  org.apache.httpcomponents:httpcore-nio:4.4.3 \
-                  commons-cli:commons-cli:1.2 \
-                  commons-codec:commons-codec:1.6 \
-                  commons-logging:commons-logging-adapters:1.1 \
-                  commons-logging:commons-logging-api:1.1 \
-                  org.apache.commons:commons-lang3:3.4 \
-                  org.apache.logging.log4j:log4j-1.2-api:2.17.1 \
-                  org.apache.logging.log4j:log4j-api:2.17.1 \
-                  org.apache.logging.log4j:log4j-core:2.17.1 \
-                  org.apache.logging.log4j:log4j-slf4j-impl:2.17.1 \
-                  org.slf4j:slf4j-api:1.7.12 \
-                  com.beust:jcommander:1.48 \
-                  org.xerial:sqlite-jdbc:3.49.0.0 \
-                  joda-time:joda-time:2.8.2 \
-                  org.projectlombok:lombok:1.18.22"
-  
+
+  # group:artifact:version:sha256, where sha256 is the expected digest of the
+  # published jar, pinned to detect a tampered or substituted download.
+  remote_mvn_pkg="com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}:1db27e567afd17cc1ed37f894b553ba4451752031cd128dc2e45f4e0749f35fd \
+                  com.amazonaws:aws-java-sdk-kinesis:${aws_java_sdk_version}:b736930ca3781ee90bdf2597c868557ad0fc4fb81d171b630ace6aadbe1970f7 \
+                  com.amazonaws:aws-java-sdk-cloudwatch:${aws_java_sdk_version}:324bbdf997b022eaab777fbb352b209899aecb5ce1f79108e31ad26c7b5dfa62 \
+                  com.amazonaws:aws-java-sdk-sts:${aws_java_sdk_version}:2c25eee31103b5908e0c6923f7b4897abe7bede4872e869073d8348872099d71 \
+                  com.amazonaws:aws-java-sdk-ec2:${aws_java_sdk_version}:22e54cf255bd37febdfb41d177f402b292e74992e5f8794b3620d602a392d2dd \
+                  com.fasterxml.jackson.core:jackson-annotations:2.17.2:873a606e23507969f9bbbea939d5e19274a88775ea5a169ba7e2d795aa5156e1 \
+                  com.fasterxml.jackson.core:jackson-core:2.17.2:721a189241dab0525d9e858e5cb604d3ecc0ede081e2de77d6f34fa5779a5b46 \
+                  com.fasterxml.jackson.core:jackson-databind:2.17.2:c04993f33c0f845342653784f14f38373d005280e6359db5f808701cfae73c0c \
+                  com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.17.2:1d7dc634ba3d7981d7017f4f44d43cf371e922c80028b4eb3e5374ce6546d5f6 \
+                  com.google.code.findbugs:jsr305:3.0.1:c885ce34249682bc0236b4a7d56efcc12048e6135a5baf7a9cde8ad8cda13fcd \
+                  com.google.guava:guava:32.0.0-jre:39f3550b0343d8d19dd4e83bd165b58ea3389d2ddb9f2148e63903f79ecdb114 \
+                  org.apache.httpcomponents:httpclient:4.5.13:6fe9026a566c6a5001608cf3fc32196641f6c1e5e1986d1037ccdbd5f31ef743 \
+                  org.apache.httpcomponents:httpclient-cache:4.5.1:5315c8ad696d3257f632c8f090ca79c04bbef4beb57b79b4108f9d5607a592c7 \
+                  org.apache.httpcomponents:httpmime:4.5.1:8376801929b82e1d64cbf554abc60be94cfe039a874f8e6f371d06dbd97b99df \
+                  org.apache.httpcomponents:httpcore:4.4.3:e4ce096fab656865f0d78d88887377111fb2f3bcd5004c1cddbc899987f32b5e \
+                  org.apache.httpcomponents:httpcore-ab:4.4.3:1339236545a3871b07223b6af75743991732131f1fa989a8d6441066229131fa \
+                  org.apache.httpcomponents:httpcore-nio:4.4.3:5d109d79da3c778e025a5ab2188463812eb4fc2db92f17a8f523bcc5631bcccf \
+                  commons-cli:commons-cli:1.2:e7cd8951956d349b568b7ccfd4f5b2529a8c113e67c32b028f52ffda371259d9 \
+                  commons-codec:commons-codec:1.6:54b34e941b8e1414bd3e40d736efd3481772dc26db3296f6aa45cec9f6203d86 \
+                  commons-logging:commons-logging-adapters:1.1:746b8150fc315b75ed35d89a3431075ea78791d97efd6eaee8e06878aa04dfe0 \
+                  commons-logging:commons-logging-api:1.1:33a4dd47bb4764e4eb3692d86386d17a0d9827f4f4bb0f70121efab6bc03ba35 \
+                  org.apache.commons:commons-lang3:3.4:734c8356420cc8e30c795d64fd1fcd5d44ea9d90342a2cc3262c5158fbc6d98b \
+                  org.apache.logging.log4j:log4j-1.2-api:2.17.1:ca3e9150f95c31d15b9680a609b8817f8549bd395591c5ca55957d1ef0f464d6 \
+                  org.apache.logging.log4j:log4j-api:2.17.1:b0d8a4c8ab4fb8b1888d0095822703b0e6d4793c419550203da9e69196161de4 \
+                  org.apache.logging.log4j:log4j-core:2.17.1:c967f223487980b9364e94a7c7f9a8a01fd3ee7c19bdbf0b0f9f8cb8511f3d41 \
+                  org.apache.logging.log4j:log4j-slf4j-impl:2.17.1:e9a03720e5d5076009c2530635da9d08485e28a0b0ec20708dadc51afb78e41e \
+                  org.slf4j:slf4j-api:1.7.12:0aee9a77a4940d72932b0d0d9557793f872e66a03f598e473f45e7efecdccf99 \
+                  com.beust:jcommander:1.48:a7313fcfde070930e40ec79edf3c5948cf34e4f0d25cb3a09f9963d8bdd84113 \
+                  org.xerial:sqlite-jdbc:3.49.0.0:1df1b9404b1e434f7215b45e88d3a10558ccf5e905dcd36aff9d7f2c85bc225a \
+                  joda-time:joda-time:2.8.2:7c71ac7b4c0e6b7e49bcc93c135825d23f427aba62397b313c7fdcd2c19c42cb \
+                  org.projectlombok:lombok:1.18.22:ecef1581411d7a82cc04281667ee0bac5d7c0a5aae74cfc38430396c91c31831"
+
   for package in ${remote_mvn_pkg}
   do
    download_jar $(echo $package | tr : " ")
